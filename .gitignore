@@ -1,0 +1,52 @@
+# Python / virtualenv
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local secrets and environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+
+# Local runtime data
+data/
+*.sqlite
+*.sqlite3
+*.db
+*.log
+*.err.log
+
+# Large local archives / release bundles
+*.7z
+*.zip
+*.rar
+*.tar
+*.gz
+
+# Local binaries / downloaded tools
+.tools/
+*.exe
+*.dll
+
+# OS / editor
+Thumbs.db
+Desktop.ini
+.DS_Store
+.vscode/
+.idea/
+
+
+# Build metadata
+*.egg-info/
+build/
+dist/

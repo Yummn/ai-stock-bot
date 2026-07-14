@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI &#27169;&#25311;&#28818;&#32929;&#38754;&#26495;</title>
+    <link rel="stylesheet" href="/static/styles.css?v=20260627-autolearn-valid1" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1 id="topTitle">AI &#27169;&#25311;&#28818;&#32929;</h1>
+        <p id="status">&#23601;&#32490;</p>
+      </div>
+      <div class="top-actions">
+        <div id="dashboardTopActions" class="top-action-group">
+          <button id="runBtn">&#36816;&#34892;</button>
+          <button id="autoBtn"><span id="autoBtnText">&#24320;&#22987;&#33258;&#21160;</span></button>
+          <button id="resetBtn">&#37325;&#32622;&#36134;&#25143;</button>
+        </div>
+        <div id="settingsTopActions" class="top-action-group hidden">
+          <button id="saveSettingsBtn">&#20445;&#23384;&#35774;&#32622;</button>
+          <button id="resetSettingsBtn">&#24674;&#22797;&#40664;&#35748;</button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section id="settingsView" class="view">
+        <div id="settingsSubnav" class="settings-subnav"></div>
+        <div class="settings-grid">
+          <aside id="accountControls" class="controls" data-settings-tab="account">
+            <h2>&#36134;&#25143;</h2>
+            <label>&#32929;&#31080;&#27744;<textarea id="symbols" rows="3"></textarea></label>
+            <div id="symbolsPreview" class="reason"></div>
+            <label>&#36215;&#22987;&#36164;&#20135;<input id="starting_cash" type="number" min="1000" step="1000" /></label>
+            <label>&#36816;&#34892;&#27169;&#24335;<select id="run_engine"><option value="local">&#26412;&#22320;</option><option value="ml">&#26426;&#22120;&#23398;&#20064;</option><option value="ai">AI</option></select></label>
+            <label>&#33258;&#21160;&#26723;&#20301;<select id="strategy_auto_select"><option value="off">&#20851;&#38381;&#65306;&#20351;&#29992;&#24403;&#21069;&#26723;&#20301;</option><option value="on">&#24320;&#21551;&#65306;&#27599;&#21482;&#32929;&#31080;&#33258;&#21160;&#21028;&#26029;&#26723;&#20301;</option></select></label>
+            <input id="strategy_profile" type="hidden" value="conservative" />
+          </aside>
+
+          <aside id="riskControls" class="controls" data-settings-tab="account">
+            <h2>&#39118;&#25511;</h2>
+            <label>&#21333;&#31508;&#37329;&#39069;<input id="max_trade_cash" type="number" min="100" step="100" /></label>
+            <label>&#21333;&#31508;&#32929;&#25968;<input id="max_order_shares" type="number" min="100" step="100" /></label>
+            <label>&#21333;&#32929;&#20179;&#20301; %<input id="max_position_pct" type="number" min="1" max="100" step="1" /></label>
+            <label>&#27490;&#25439; %<input id="stop_loss_pct" type="number" min="1" max="100" step="1" /></label>
+            <label>&#27490;&#30408; %<input id="take_profit_pct" type="number" min="1" max="300" step="1" /></label>
+            <label>&#20445;&#23432;&#20080;&#20837;&#20449;&#21495;<input id="conservative_max_buy_signals" type="number" min="1" max="20" step="1" /></label>
+            <label>&#22343;&#34913;&#20080;&#20837;&#20449;&#21495;<input id="balanced_max_buy_signals" type="number" min="1" max="20" step="1" /></label>
+            <label>&#28608;&#36827;&#20080;&#20837;&#20449;&#21495;<input id="aggressive_max_buy_signals" type="number" min="1" max="20" step="1" /></label>
+            <label>&#33258;&#23450;&#20041;&#20080;&#20837;&#20449;&#21495;<input id="custom_max_buy_signals" type="number" min="1" max="20" step="1" /></label>
+          </aside>
+
+          <aside id="localControls" class="controls" data-settings-tab="local">
+            <h2>&#26412;&#22320;&#35268;&#21017;</h2>
+            <label>&#31574;&#30053;&#26723;&#20301;<select id="local_strategy_profile"><option value="conservative">&#20445;&#23432;</option><option value="balanced">&#22343;&#34913;</option><option value="aggressive">&#28608;&#36827;</option><option value="custom">&#33258;&#23450;&#20041;</option></select></label>
+            <label>&#20445;&#23432;&#20080;&#20837;&#20998;<input id="conservative_buy_score" type="number" min="1" max="20" step="1" /></label>
+            <label>&#22343;&#34913;&#20080;&#20837;&#20998;<input id="balanced_buy_score" type="number" min="1" max="20" step="1" /></label>
+            <label>&#28608;&#36827;&#20080;&#20837;&#20998;<input id="aggressive_buy_score" type="number" min="1" max="20" step="1" /></label>
+            <label>&#33258;&#23450;&#20041;&#20080;&#20837;&#20998;<input id="custom_buy_score" type="number" min="1" max="20" step="1" /></label>
+          </aside>
+
+          <aside id="mlCommonControls" class="controls" data-settings-tab="ml">
+            <h2>&#26426;&#22120;&#23398;&#20064;</h2>
+            <label>&#27169;&#22411;<select id="ml_model"><option value="random_forest">RandomForest</option><option value="hist_gradient_boosting">HistGradientBoosting</option><option value="xgboost">XGBoost</option><option value="mlp">MLP</option><option value="cnn">1D-CNN</option></select></label>
+            <input id="ml_strategy_profile" type="hidden" value="conservative" />
+            <input id="ml_training_days" type="hidden" value="1095" />
+            <input id="ml_training_mode" type="hidden" value="self" />
+            <input id="ml_target" type="hidden" value="binary" />
+            <input id="ml_buy_threshold" type="hidden" />
+            <input id="ml_sell_threshold" type="hidden" />
+            <input id="ml_min_samples" type="hidden" value="80" />
+            <div id="mlParamsHint" class="reason">&#36873;&#25321;&#27169;&#22411;&#21518;&#65292;&#26412;&#39029;&#20250;&#26174;&#31034;&#23545;&#24212;&#27169;&#22411;&#21442;&#25968;&#12290;</div>
+          </aside>
+
+          <aside id="trainingControls" class="controls" data-settings-tab="training">
+            <h2>&#35757;&#32451;</h2>
+            <label>&#35757;&#32451;&#32929;&#31080;&#27744;<textarea id="training_symbols" rows="4"></textarea></label>
+            <div id="trainingSymbolsPreview" class="reason"></div>
+            <label>训练方式<select id="rf_training_mode"><option value="self">1. 自己训练自己，不够自动回退</option><option value="classified">2. 按牛市/熊市/震荡分类训练，不够回退</option><option value="mixed">3. 全部混合训练</option></select></label>
+            <input id="hgb_training_mode" type="hidden" value="self" />
+            <input id="xgb_training_mode" type="hidden" value="self" />
+            <input id="mlp_training_mode" type="hidden" value="self" />
+            <input id="cnn_training_mode" type="hidden" value="self" />
+            <input id="training_pool_mode" type="hidden" value="training_plus_trade" />
+            <input id="training_regime_filter" type="hidden" value="off" />
+            <input id="training_volatility_filter" type="hidden" value="off" />
+            <div class="mini-grid">
+              <label>RandomForest 训练窗口<select id="rf_training_days"><option value="365">1 年</option><option value="1095" selected>3 年</option><option value="1825">5 年</option><option value="3650">10 年</option></select></label>
+              <label>HistGradientBoosting 训练窗口<select id="hgb_training_days"><option value="365">1 年</option><option value="1095" selected>3 年</option><option value="1825">5 年</option><option value="3650">10 年</option></select></label>
+              <label>XGBoost 训练窗口<select id="xgb_training_days"><option value="365">1 年</option><option value="1095" selected>3 年</option><option value="1825">5 年</option><option value="3650">10 年</option></select></label>
+              <label>MLP 训练窗口<select id="mlp_training_days"><option value="365" selected>1 年</option><option value="1095">3 年</option><option value="1825">5 年</option><option value="3650">10 年</option></select></label>
+              <label>1D-CNN 训练窗口<select id="cnn_training_days"><option value="365">1 年</option><option value="1095" selected>3 年</option><option value="1825">5 年</option><option value="3650">10 年</option></select></label>
+            </div>
+            <div class="reason">1 会先用每只股票自己的历史训练；样本不够自动回退到 2。2 会按自然年行情标签分类训练；样本不够自动回退到 3。3 会把全部样本混在一起训练。回测时训练数据会自动截到测试开始前，避免看到未来。</div>
+          </aside>
+
+          <aside id="yearRegimeControls" class="controls" data-settings-tab="training">
+            <h2>&#33258;&#28982;&#24180;&#34892;&#24773;&#26631;&#31614;</h2>
+            <input id="year_regime_overrides" type="hidden" value="{}" />
+            <div class="regime-toolbar">
+              <button id="refreshYearRegimesBtn" type="button">&#21047;&#26032;&#26631;&#31614;</button>
+              <span>&#25353;&#32929;&#31080;&#21517;&#31216;&#20998;&#31867;&#25240;&#21472;&#26174;&#31034;&#12290;&#40664;&#35748;&#25353;&#25910;&#30410;&#12289;&#22238;&#25764;&#12289;&#27874;&#21160;&#21644;&#24180;&#26411;&#36235;&#21183;&#33258;&#21160;&#21028;&#26029;&#65292;&#20320;&#21487;&#20197;&#25163;&#21160;&#20462;&#25913;&#12290;</span>
+            </div>
+            <div id="yearRegimeLabels" class="year-regime-list empty">&#28857;&#20987;&#21047;&#26032;&#26631;&#31614;&#21518;&#26174;&#31034;</div>
+          </aside>
+
+          <aside id="autoLearnControls" class="controls" data-settings-tab="training">
+            <h2>&#33258;&#21160;&#23398;&#20064;</h2>
+            <input id="ml_profile_overrides" type="hidden" value="{}" />
+            <label>&#23398;&#20064;&#27169;&#22411;<select id="auto_learn_model"><option value="current">&#20351;&#29992;&#24403;&#21069;&#26426;&#22120;&#23398;&#20064;&#27169;&#22411;</option><option value="random_forest">RandomForest</option><option value="hist_gradient_boosting">HistGradientBoosting</option><option value="xgboost">XGBoost</option><option value="mlp">MLP</option><option value="cnn">1D-CNN</option></select></label>
+            <label>&#23398;&#20064;&#27169;&#24335;<select id="auto_learn_continuous"><option value="false">&#19968;&#27425;&#23398;&#20064;&#65306;&#36305;&#19968;&#36718;&#23601;&#32467;&#26463;</option><option value="true">&#25345;&#32493;&#23398;&#20064;&#65306;&#25353;&#24403;&#21069;&#26368;&#20339;&#32467;&#26524;&#36845;&#20195;</option></select></label>
+            <label>&#23398;&#20064;&#24378;&#24230;<select id="auto_learn_budget"><option value="balanced">&#24179;&#34913;&#65306;&#22810;&#26723;&#20301; x 2021-2025</option><option value="quick">&#24555;&#36895;&#65306;&#24403;&#21069;&#26723;&#20301; x 2021-2025</option><option value="deep">&#28145;&#24230;&#65306;&#26356;&#22810;&#38408;&#20540;&#21464;&#20307; x 2021-2025</option></select></label>
+            <div class="mini-grid">
+              <label>&#36830;&#32493;&#26080;&#25552;&#21319;&#36718;&#25968;<input id="auto_learn_patience" type="number" min="1" max="50" step="1" value="6" /></label>
+              <label>&#26368;&#23567;&#25552;&#21319;&#20998;<input id="auto_learn_min_improvement" type="number" min="0" max="1" step="0.001" value="0.002" /></label>
+            </div>
+            <div class="mini-grid">
+              <label>&#19987;&#39033;&#35780;&#20998;&#26435;&#37325;<input id="auto_learn_specialized_weight" type="number" min="0" max="100" step="1" value="50" /></label>
+              <label>&#20828;&#24213;&#35780;&#20998;&#26435;&#37325;<input id="auto_learn_fallback_weight" type="number" min="0" max="100" step="1" value="25" /></label>
+              <label>&#32508;&#21512;&#35780;&#20998;&#26435;&#37325;<input id="auto_learn_composite_weight" type="number" min="0" max="100" step="1" value="25" /></label>
+            </div>
+            <div class="reason">&#19987;&#39033;&#65306;&#28608;&#36827;&#30475;&#29275;&#24066;&#12289;&#20445;&#23432;&#30475;&#24369;&#24066;&#12289;&#22343;&#34913;&#30475;&#38663;&#33633;&#12290;&#20828;&#24213;&#65306;&#30475;&#38750;&#30446;&#26631;&#34892;&#24773;&#19981;&#33021;&#22826;&#24046;&#12290;&#32508;&#21512;&#65306;&#30475;&#25152;&#26377;&#24180;&#20221;&#24179;&#22343;&#34920;&#29616;&#12290;</div>
+            <div class="reason">&#39564;&#35777;&#24180;&#20221;&#22266;&#23450;&#20026; 2021-2025&#65292;&#27599;&#24180;&#21482;&#29992;&#24403;&#24180;&#24320;&#22987;&#21069;&#30340;&#25968;&#25454;&#35757;&#32451;&#65292;&#19981;&#20250;&#35843;&#29992; AI &#22823;&#27169;&#22411;&#12290;</div>
+            <div class="form-actions">
+              <button id="autoLearnBtn" type="button">&#24320;&#22987;&#33258;&#21160;&#23398;&#20064;</button>
+              <button id="stopAutoLearnBtn" type="button">&#20572;&#27490;&#23398;&#20064;</button>
+            </div>
+            <div id="autoLearnStatus" class="reason">&#23578;&#26410;&#36816;&#34892;</div>
+            <div id="autoLearnResult" class="auto-learn-result empty">&#36816;&#34892;&#21518;&#26174;&#31034;&#25512;&#33616;&#21442;&#25968;&#21644;&#21508;&#24180;&#39564;&#35777;&#32467;&#26524;</div>
+          </aside>
+
+          <aside id="rfControls" class="controls model-controls" data-settings-tab="ml" data-model-panel="rf">
+            <h2>RandomForest</h2>
+            <label>&#31574;&#30053;&#26723;&#20301;<select id="rf_strategy_profile"><option value="conservative">&#20445;&#23432;</option><option value="balanced">&#22343;&#34913;</option><option value="aggressive">&#28608;&#36827;</option><option value="custom">&#33258;&#23450;&#20041;</option></select></label>
+            <label>&#39044;&#27979;&#30446;&#26631;<select id="rf_target"><option value="binary">&#20108;&#20998;&#31867;&#28072;&#36300;</option><option value="trend5">&#20116;&#20998;&#31867;&#27010;&#29575;</option></select></label>
+            <label>Buy threshold<input id="rf_buy_threshold" type="number" min="0.01" max="0.99" step="0.01" /></label>
+            <label>Sell threshold<input id="rf_sell_threshold" type="number" min="0.01" max="0.99" step="0.01" /></label>
+            <label>Min samples<input id="rf_min_samples" type="number" min="20" max="5000" step="10" /></label>
+            <label>Trees<input id="rf_n_estimators" type="number" min="10" max="500" step="10" /></label>
+            <label>Max depth<input id="rf_max_depth" type="number" min="1" max="30" step="1" /></label>
+            <label>Min leaf samples<input id="rf_min_samples_leaf" type="number" min="1" max="100" step="1" /></label>
+            <label class="check-row"><input id="rf_max_features_sqrt" type="checkbox" /><span>max_features=sqrt</span></label>
+            <label class="check-row"><input id="rf_class_weight" type="checkbox" /><span>Class weight</span></label>
+            <label class="check-row"><input id="rf_sample_weight" type="checkbox" /><span>Sample weight</span></label>
+          </aside>
+
+          <aside id="hgbControls" class="controls model-controls" data-settings-tab="ml" data-model-panel="hgb">
+            <h2>HistGradientBoosting</h2>
+            <label>&#31574;&#30053;&#26723;&#20301;<select id="hgb_strategy_profile"><option value="conservative">&#20445;&#23432;</option><option value="balanced">&#22343;&#34913;</option><option value="aggressive">&#28608;&#36827;</option><option value="custom">&#33258;&#23450;&#20041;</option></select></label>
+            <label>&#39044;&#27979;&#30446;&#26631;<select id="hgb_target"><option value="binary">&#20108;&#20998;&#31867;&#28072;&#36300;</option><option value="trend5">&#20116;&#20998;&#31867;&#27010;&#29575;</option></select></label>
+            <label>Buy threshold<input id="hgb_buy_threshold" type="number" min="0.01" max="0.99" step="0.01" /></label>
+            <label>Sell threshold<input id="hgb_sell_threshold" type="number" min="0.01" max="0.99" step="0.01" /></label>
+            <label>Min samples<input id="hgb_min_samples" type="number" min="20" max="5000" step="10" /></label>
+            <label>Max iter<input id="hgb_max_iter" type="number" min="20" max="500" step="10" /></label>
+            <label>Learning rate<input id="hgb_learning_rate" type="number" min="0.005" max="0.5" step="0.005" /></label>
+            <label>Max leaf nodes<input id="hgb_max_leaf_nodes" type="number" min="4" max="63" step="1" /></label>
+            <label>Min leaf samples<input id="hgb_min_samples_leaf" type="number" min="2" max="100" step="1" /></label>
+            <label>L2<input id="hgb_l2_regularization" type="number" min="0" max="10" step="0.01" /></label>
+            <label class="check-row"><input id="hgb_early_stopping" type="checkbox" /><span>Early stopping</span></label>
+            <label class="check-row"><input id="hgb_sample_weight" type="checkbox" /><span>Sample weight</span></label>
+          </aside>
+
+          <aside id="xgbControls" class="controls model-controls" data-settings-tab="ml" data-model-panel="xgb">
+            <h2>XGBoost</h2>
+            <label>&#31574;&#30053;&#26723;&#20301;<select id="xgb_strategy_profile"><option value="conservative">&#20445;&#23432;</option><option value="balanced">&#22343;&#34913;</option><option value="aggressive">&#28608;&#36827;</option><option value="custom">&#33258;&#23450;&#20041;</option></select></label>
+            <label>&#39044;&#27979;&#30446;&#26631;<select id="xgb_target"><option value="binary">&#20108;&#20998;&#31867;&#28072;&#36300;</option><option value="trend5">&#20116;&#20998;&#31867;&#27010;&#29575;</option></select></label>
+            <label>Buy threshold<input id="xgb_buy_threshold" type="number" min="0.01" max="0.99" step="0.01" /></label>
+            <label>Sell threshold<input id="xgb_sell_threshold" type="number" min="0.01" max="0.99" step="0.01" /></label>
+            <label>Min samples<input id="xgb_min_samples" type="number" min="20" max="5000" step="10" /></label>
+            <label>Trees<input id="xgb_n_estimators" type="number" min="20" max="500" step="10" /></label>
+            <label>Max depth<input id="xgb_max_depth" type="number" min="1" max="12" step="1" /></label>
+            <label>Learning rate<input id="xgb_learning_rate" type="number" min="0.005" max="0.5" step="0.005" /></label>
+            <label>Subsample<input id="xgb_subsample" type="number" min="0.3" max="1" step="0.05" /></label>
+            <label>Colsample<input id="xgb_colsample_bytree" type="number" min="0.3" max="1" step="0.05" /></label>
+            <label>Min child weight<input id="xgb_min_child_weight" type="number" min="0.1" max="50" step="0.1" /></label>
+            <label>Reg lambda<input id="xgb_reg_lambda" type="number" min="0" max="20" step="0.1" /></label>
+            <label class="check-row"><input id="xgb_sample_weight" type="checkbox" /><span>Sample weight</span></label>
+          </aside>
+
+          <aside id="mlpControls" class="controls model-controls" data-settings-tab="ml" data-model-panel="mlp">
+            <h2>MLP</h2>
+            <label>&#31574;&#30053;&#26723;&#20301;<select id="mlp_strategy_profile"><option value="conservative">&#20445;&#23432;</option><option value="balanced">&#22343;&#34913;</option><option value="aggressive">&#28608;&#36827;</option><option value="custom">&#33258;&#23450;&#20041;</option></select></label>
+            <label>&#39044;&#27979;&#30446;&#26631;<select id="mlp_target"><option value="binary">&#20108;&#20998;&#31867;&#28072;&#36300;</option><option value="trend5">&#20116;&#20998;&#31867;&#27010;&#29575;</option></select></label>
+            <label>Buy threshold<input id="mlp_buy_threshold" type="number" min="0.01" max="0.99" step="0.01" /></label>
+            <label>Sell threshold<input id="mlp_sell_threshold" type="number" min="0.01" max="0.99" step="0.01" /></label>
+            <label>Min samples<input id="mlp_min_samples" type="number" min="20" max="5000" step="10" /></label>
+            <label>Layer size<input id="mlp_layer_size" type="number" min="8" max="512" step="8" /></label>
+            <label>Layer count<input id="mlp_layer_count" type="number" min="1" max="4" step="1" /></label>
+            <label>Max iter<input id="mlp_max_iter" type="number" min="20" max="1000" step="20" /></label>
+            <label>Learning rate<input id="mlp_learning_rate" type="number" min="0.0001" max="0.1" step="0.0001" /></label>
+            <label>L2 alpha<input id="mlp_alpha" type="number" min="0.00001" max="1" step="0.0001" /></label>
+            <label class="check-row"><input id="mlp_early_stopping" type="checkbox" /><span>Early stopping</span></label>
+          </aside>
+
+          <aside id="cnnControls" class="controls model-controls" data-settings-tab="ml" data-model-panel="cnn">
+            <h2>1D-CNN</h2>
+            <label>&#31574;&#30053;&#26723;&#20301;<select id="cnn_strategy_profile"><option value="conservative">&#20445;&#23432;</option><option value="balanced">&#22343;&#34913;</option><option value="aggressive">&#28608;&#36827;</option><option value="custom">&#33258;&#23450;&#20041;</option></select></label>
+            <label>&#39044;&#27979;&#30446;&#26631;<select id="cnn_target"><option value="binary">&#20108;&#20998;&#31867;&#28072;&#36300;</option><option value="trend5">&#20116;&#20998;&#31867;&#27010;&#29575;</option></select></label>
+            <label>Buy threshold<input id="cnn_buy_threshold" type="number" min="0.01" max="0.99" step="0.01" /></label>
+            <label>Sell threshold<input id="cnn_sell_threshold" type="number" min="0.01" max="0.99" step="0.01" /></label>
+            <label>Min samples<input id="cnn_min_samples" type="number" min="20" max="5000" step="10" /></label>
+            <label>Sequence window<input id="cnn_window" type="number" min="5" max="120" step="1" /></label>
+            <label>Channels<input id="cnn_channels" type="number" min="4" max="256" step="4" /></label>
+            <label>Kernel size<input id="cnn_kernel_size" type="number" min="1" max="9" step="2" /></label>
+            <label>Conv layers<input id="cnn_layers" type="number" min="1" max="5" step="1" /></label>
+            <label>Max iter<input id="cnn_max_iter" type="number" min="20" max="1000" step="20" /></label>
+            <label>Learning rate<input id="cnn_learning_rate" type="number" min="0.0001" max="0.1" step="0.0001" /></label>
+            <label>L2 alpha<input id="cnn_alpha" type="number" min="0.00001" max="1" step="0.0001" /></label>
+            <label>Dropout<input id="cnn_dropout" type="number" min="0" max="0.8" step="0.01" /></label>
+            <label class="check-row"><input id="cnn_early_stopping" type="checkbox" /><span>Early stopping</span></label>
+            <label class="check-row"><input id="cnn_sample_weight" type="checkbox" /><span>Sample weight</span></label>
+          </aside>
+
+          <aside id="aiControls" class="controls" data-settings-tab="ai">
+            <h2>AI</h2>
+            <label>&#31574;&#30053;&#26723;&#20301;<select id="ai_strategy_profile"><option value="conservative">&#20445;&#23432;</option><option value="balanced">&#22343;&#34913;</option><option value="aggressive">&#28608;&#36827;</option><option value="custom">&#33258;&#23450;&#20041;</option></select></label>
+            <div class="reason">AI &#27169;&#24335;&#20351;&#29992; OpenAI / Codex &#20449;&#21495;&#65292;&#26426;&#22120;&#23398;&#20064;&#21442;&#25968;&#19981;&#29983;&#25928;&#12290;</div>
+          </aside>
+
+          <aside id="strategyDocs" class="controls strategy-docs-panel" data-settings-tab="docs">
+            <h2>&#31574;&#30053;&#35268;&#21017;</h2>
+            <div id="strategyDocsContent" class="strategy-docs"></div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="testView" class="view">
+        <div class="controls test-controls">
+          <h2>&#22238;&#27979;</h2>
+          <label>&#22238;&#27979;&#21306;&#38388;<select id="backtest_mode"><option value="random">&#38543;&#26426;14&#22825;</option><option value="natural_year" data-year="2025">2025&#24180;</option><option value="natural_year" data-year="2024">2024&#24180;</option><option value="natural_year" data-year="2023">2023&#24180;</option><option value="natural_year" data-year="2022">2022&#24180;</option><option value="natural_year" data-year="2021">2021&#24180;</option></select></label>
+          <label>&#22238;&#27979;&#31890;&#24230;<select id="time_granularity"><option value="fast">&#24555;&#36895;&#26085;&#32447;</option><option value="slow">&#24930;&#36895;&#23454;&#38469;&#31890;&#24230;</option></select></label>
+          <label>&#24930;&#36895;&#38388;&#38548;<select id="backtest_interval_minutes"><option value="15">15 &#20998;&#38047;</option><option value="30" selected>30 &#20998;&#38047;</option><option value="60">60 &#20998;&#38047;</option></select></label>
+          <div id="backtestIntervalHint" class="reason"></div>
+          <button id="backtestBtn">&#24320;&#22987;&#22238;&#27979;</button>
+        </div>
+        <div id="backtest" class="backtest empty">&#28857;&#20987;&#24320;&#22987;&#22238;&#27979;</div>
+      </section>
+
+      <section id="dashboardView" class="view active">
+        <div class="dashboard-grid">
+          <aside class="panel account-panel">
+            <h2>&#36134;&#25143;</h2>
+            <div id="account" class="account">
+              <div><span>&#24635;&#26435;&#30410;</span><strong id="equity">--</strong></div>
+              <div><span>&#29616;&#37329;</span><strong id="cash">--</strong></div>
+              <div><span>&#36816;&#34892;&#36718;&#27425;</span><strong id="cycle">0</strong></div>
+              <div><span>&#25968;&#25454;&#28304;</span><strong id="source">--</strong></div>
+              <div><span>&#33258;&#21160;&#29366;&#24577;</span><strong id="autoState">&#20851;&#38381;</strong></div>
+            </div>
+            <label>&#33258;&#21160;&#38388;&#38548;&#31186;<input id="auto_interval" type="number" min="30" step="30" value="1800" /></label>
+          </aside>
+          <aside class="panel manual-panel">
+            <h2>&#25163;&#21160;&#20080;&#20837;</h2>
+            <label>&#32929;&#31080;<select id="manual_symbol"></select></label>
+            <label>&#37329;&#39069;<input id="manual_cash" type="number" min="0" step="100" /></label>
+            <label>&#32929;&#25968;<input id="manual_shares" type="number" min="0" step="100" /></label>
+            <button id="manualBuyBtn">&#20080;&#20837;</button>
+            <p id="manualStatus" class="reason"></p>
+          </aside>
+          <aside class="panel wide"><h2>&#34892;&#24773;</h2><div id="charts" class="charts empty">&#28857;&#20987;&#36816;&#34892;&#19968;&#27425;</div></aside>
+          <aside class="panel wide"><h2>&#20449;&#21495;</h2><div id="signals" class="signals empty">&#28857;&#20987;&#36816;&#34892;&#19968;&#27425;</div></aside>
+          <aside class="panel wide table-panel"><h2>&#25345;&#20179;</h2><div class="table-wrap"><table><tbody id="positions"><tr><td>&#26242;&#26080;&#25345;&#20179;</td></tr></tbody></table></div></aside>
+          <aside class="panel wide"><h2>&#26368;&#36817;&#22996;&#25176;</h2><div id="orders" class="orders empty">&#26242;&#26080;&#22996;&#25176;</div></aside>
+          <aside class="panel wide table-panel"><h2>&#34892;&#24773;&#34920;</h2><div class="table-wrap"><table><tbody id="snapshots"><tr><td>&#26242;&#26080;&#34892;&#24773;</td></tr></tbody></table></div></aside>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <button class="nav-item" data-target="settingsView">&#35774;&#32622;</button>
+      <button class="nav-item" data-target="testView">&#27979;&#35797;</button>
+      <button class="nav-item active" data-target="dashboardView">&#20202;&#34920;&#30424;</button>
+    </nav>
+
+    <script src="/static/app.js?v=20260627-autolearn-valid1"></script>
+  </body>
+</html>

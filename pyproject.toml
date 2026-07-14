@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-stock-bot"
+version = "0.1.0"
+description = "Conservative AI-assisted paper trading bot"
+requires-python = ">=3.10"
+dependencies = [
+    "requests>=2.32.0",
+    "python-dotenv>=1.0.1",
+    "openai>=1.0.0",
+    "alpaca-py>=0.39.0",
+    "akshare>=1.16.0",
+    "tushare>=1.4.0",
+    "xtquant>=250516.1.1",
+    "scikit-learn>=1.5.0",
+    "xgboost>=2.0.0",
+    "torch>=2.3.0",
+]
+
+[project.scripts]
+ai-stock-bot = "ai_stock_bot.cli:main"
+ai-stock-web = "ai_stock_bot.web:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
