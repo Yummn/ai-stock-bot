@@ -12,7 +12,7 @@
 ## 安装
 
 ```powershell
-cd C:\Users\yummn\Documents\Codex\2026-06-19\ai\outputs\ai_stock_bot
+cd path\to\ai-stock-bot
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
@@ -161,7 +161,7 @@ OPENAI_MODEL=gpt-4.1-mini
 
 ```env
 AI_PROVIDER=codex
-CODEX_BIN=C:\Users\yummn\AppData\Local\OpenAI\Codex\bin\f1c7ee7a13db5fed\codex.exe
+CODEX_BIN=path\to\codex.exe
 CODEX_TIMEOUT_SECONDS=90
 ```
 
@@ -216,7 +216,7 @@ QMT 环境预检：
 
 PTrade 通常不是普通命令行 API，而是在券商 PTrade 平台内运行策略。项目提供了模板：
 
-[examples/ptrade_strategy_template.py](/C:/Users/yummn/Documents/Codex/2026-06-19/ai/outputs/ai_stock_bot/examples/ptrade_strategy_template.py)
+[examples/ptrade_strategy_template.py](examples/ptrade_strategy_template.py)
 
 思路：
 
