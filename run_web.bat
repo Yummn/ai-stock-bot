@@ -2,5 +2,7 @@
 setlocal
 cd /d "%~dp0"
 set "PYTHONPATH=%CD%\src"
-".venv\Scripts\python.exe" -m ai_stock_bot.web --host 127.0.0.1 --port 8765
+set "PORT=%~1"
+if not defined PORT set "PORT=8771"
+".venv\Scripts\python.exe" scripts\launch_investor.py --port %PORT%
 pause

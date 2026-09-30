@@ -1,260 +1,95 @@
-# AI Stock Bot
+# StockLab 4.8 · 个人投资
 
-这是一个可扩展的 AI 自动交易骨架，当前支持：
+一个本机运行、以投资组合为中心的研究和前向模拟工具。**不保证盈利，不会提交实盘订单。**
 
-- 行情：Yahoo、AKShare、Tushare；支持逗号分隔的备用链，例如 `akshare,yahoo`
-- 下单：本地模拟盘、Alpaca、QMT / MiniQMT、PTrade 策略环境
-- AI：Codex 登录态、本地启发式策略或 OpenAI API
-- 风控：单笔金额、单笔股数、单股仓位、当日最大亏损、止损、止盈
+券商账户页另有东方财富 EMT **仿真测试**通道：本机可只读查询，并在手动预览、确认后向已核验的普通 API 测试账户提交一笔 100 份 ETF 买入限价委托。仅限固定仿真服务器和六只列表内 ETF，单价最多 10 元；无自动下单、远程下单或真钱账户接入。委托号不等于成交；结果不明时先到券商仿真终端核对，勿重复提交。账号密码只在该次请求使用，不写入项目数据库。此功能未代替项目内的模拟账户，也不执行投资计划。
 
-这不是投资建议。真实交易可能亏损；实盘前请先用本地模拟盘、券商仿真盘和最小金额验证。
+实盘 EMT 另设**本机只读**接入准备：只有取得券商确认的真实账号、服务器地址和白名单 IP 后，才可配置资产、持仓与未完结订单查询；当前尚无这些资料，不能连接。只读查询不收集或保存交易密码，不会提交、撤销订单，也不会把真实资金混进模拟账户。配置说明见[EMT 实盘只读接入](docs/EMT_LIVE_READONLY.md)。
 
-## 安装
+4.7 新增多周期趋势、按组合波动缩减仓位、自然日融资计息和 1x 对照。默认只验证当前计划，不再顺带训练所有模型。33 组候选、121 次离线回放后，尚未证明稳定杠杆盈利，未自动启用高杠杆。完整正反结果见 [4.7 虚拟盘核验](docs/DAILY_4_7_REVIEW.md)。
 
-```powershell
-cd C:\Users\yummn\Documents\Codex\2026-06-19\ai\outputs\ai_stock_bot
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-pip install -e .
-Copy-Item .env.example .env
-```
+4.8 修正离线补行情时的借款计息顺序，并增加“验证 / 前向观察”：冻结计划、独立三本账、按时与补算日分开统计、暂停/继续/归档/导出。已启动上一轮 2x 候选的独立虚拟观察，原投资计划和总览账户未改动。收益从未来行情开始，不回填旧利润。详见 [4.8 核验与限制](docs/FORWARD_4_8_REVIEW.md)。
 
-## 先跑 A 股本地模拟盘
+新增“验证 / 独立研究”：83个候选、328次账户回放，对照趋势、突破、回调、分散组合和九种机器学习配置，含GPU CNN与1x/2x/3x。完整建仓持有基准单独纠错，旧前向观察不改写；仍未证明稳定杠杆盈利，不自动应用研究参数。见[研究结论与全部证据](docs/COMBINATION_RESEARCH_20260930.md)。
 
-`.env` 默认已经是：
+## 开始使用
 
-```env
-MARKET_DATA=akshare,yahoo
-BROKER=paper
-DRY_RUN=true
-SYMBOLS=510300.SH,510500.SH,159915.SZ
-MAX_TRADE_CASH=3000
-MAX_ORDER_SHARES=500
-```
+本次新版双击 `run_paper_preview.bat`，打开 <http://127.0.0.1:8772/>。依赖和页面已在当前电脑安装、构建。原 `run_web.bat` 入口仍使用 8771 与独立的 `data/v4` 数据，不会自动替换。
 
-运行：
+1. **总览**：更新模拟、查看模拟资产与目标分配、日线/小时行情。日线账户可按需调用 Codex 解读。
+2. **券商**：独立展示券商接入进度、仿真测试通道和实盘只读准备。真实余额、持仓和订单不会用项目内的模拟值代替；没有真钱下单入口。
+3. **投资计划**：保守、均衡、激进、自定义分别保存自己的模型、配方与组合参数，可切换查看、调整本档，再点“保存并使用”启用。切换查看不立即生效；不同档位可以采用不同算法。账户资金、费用和验证年份等公共设置共用，旧设备的草稿不能覆盖新版本。
+4. **验证**：在此选择日线验证年份。盘中 30/60 分钟采用后台任务，保存计划指纹与任务编号；展示全段探索、旧规则前后段筛选及四种盘中策略的多段对照。缺失数据、零成交和失败任务不会算成通过。历史结果不等于未来收益。
 
-```powershell
-python -m ai_stock_bot --once
-```
+当前推荐配置已经过独立的逐档算法对照，三档暂时都选中强正则化梯度树，但不是强制共用模型。保守、均衡采用不同预算的 1x 核心组合，激进采用 2x 分层配置；模型未通过当期时间验证时回退趋势。具体参数以页面当前档位及其历史证据为准；更新程序不会覆盖已有保存参数。回撤退出阈值不是最大亏损保证，跳空、停牌、无法成交仍可能突破。早期模板记录见[原始风险档位](docs/INVESTOR_V4_PROFILES.md)，最新逐档研究见 `docs/reports/profile-algorithms-20260930/`。
 
-也可以直接双击：
+自动更新默认关闭。启用后，日线工作日 16:00 后排队一次；60 分钟模式在 10:40、11:40、14:10、15:10 排队，30 分钟模式另增加 10:10、11:10、13:40、14:40。盘中回测同样考虑收线后 10 分钟延迟，跳过已开始的开盘价。关闭网页不停止服务；电脑关机/休眠时不会继续运行。没有新行情不重复成交。
 
-```text
-run_paper.bat
-```
+前向观察有独立的运行/暂停开关，不受总览自动更新开关影响。只支持日线三组对照，工作日收盘后尝试更新；失败或行情滞后最多每天自动尝试三次，间隔至少十五分钟。手动更新不占用自动重试次数。暂停观察不会清仓或删除记录；离线估值会被单独标记，不能视作当时实际在线交易。
 
-代码会优先用 AKShare 拉 A 股行情；如果当前网络访问 AKShare 底层数据源失败，会自动用 Yahoo 兜底，然后在本地模拟账户里执行风控后的买卖，不会连接券商。
+自动更新只影响模拟账户。实盘下单仍未实现；只读接入不能通过填写环境变量或切换按钮下真单。将来若要实盘执行，还需券商接口权限、账户数据核对、独立限额和订单确认。程序化交易的权限及报告要求，应先向券商确认，并参照[证监会规定](https://www.csrc.gov.cn/csrc/c101954/c7480579/content.shtml)和交易所规则。
 
-## 本地网页面板
+计划中的 2x/3x 会放大基础目标仓位；只有超过自有资金时模拟账本才记为借款。日线验证和前向模拟逐笔计算成交、最低佣金、滑点、每日借款利息和维保不足后的下次可成交减仓，不能保证按计划成交。默认年化 8%、维保线 30% 是模拟假设，不是券商报价或实际融资额度。实盘仍未接入，倍数在实盘页只显示为待核验指令，**绝不下真实订单**。旧版净值放大法仅保留在独立研究接口；新验证不再重复放大。
 
-启动：
+独立研究工具仍保留旧版[交易频率实验](docs/INVESTOR_V4_FREQUENCY.md)。当前投资计划中可选每日、每周或每月调仓；30/60 分钟可选原始均线、成本过滤、通道突破或盘中回归，不使用日线模型。盘中回归的训练窗口、最小样本和预测持有期可在详细设置调整。回测与模拟共用成交引擎，按日历日计融资（年利率 / 365，含周末）；不是交易所级高频交易。历史覆盖很短，只能当探索性证据。
 
-```powershell
-.\run_web.bat
-```
+首次模拟只保存计划，不补造过去的盈利。日线收盘信号最早在之后的交易日开盘模拟执行；小时模式只对指令发出之后尚未开始的完整小时线尝试成交。改变执行粒度、倍数或小时 ETF 需要先归档旧模拟，避免混用两种账户口径。
 
-然后打开：
+## 与旧版的区别
 
-```text
-http://127.0.0.1:8765
-```
+- 主策略不再依赖五分类或人工年度标签自动切档。三档及自定义是独立的保存位置，模型方法可以分别选择；手动调整某一档后仍可保存到该档，不会自动覆盖其他档位。
+- 梯度树和 1D-CNN 均有两种信号：分类沿用旧版“未来收盘涨幅是否超过 0.1%”的二分类标签，回归预测下一开盘成交、持有固定交易日后的净收益。分类和回归使用相同组合、行情、费用及按月滚动的时间验证；未通过验证时回退趋势组合。这里比较的是信号，不是复现旧版逐股交易账户。
+- AI 只解释已计算的组合与证据，不直接修改账户、风控和仓位。联网研究仍在独立研究区。
+- 日线与 60 分钟可分别驱动模拟；小时行情使用 Yahoo 30 分钟数据聚合到交易所上午、下午各两根完整小时柱，和旧缓存分开保存。免费数据可能延迟或中断，小时验证不足时只显示短样本探索。
+- 保留旧研究工具及其模型/档位设置，入口在右上角实验图标。研究与投资计划的设置、账户、行情表分离。
 
-网页面板只使用本地模拟盘，不会真实下单。
+## 本地数据与限制
 
-手机访问：
+8772 预览的数据保存于 `data/v4-intraday-preview/stocklab.sqlite3`，回测快照在同目录 `portfolio_tests/`；8771 旧入口使用 `data/v4/`，两者账户独立。首次迁移复制旧数据，不移动或删除原来的 `data/v3*`。旧服务和网址不会被自动替换，旧公网隧道也不会自动指向新服务。
+
+包括实际 OHLC、最低佣金、滑点、交易单位、T+1/T+0、参考成交量限制、保守涨跌停拒单，以及已核实的份额拆分和现金分红。分红在除息日计入应收，发放日进入现金。未计现金利息；不还原逐笔订单簿，跨境 ETF 溢价、临时停牌和券商完整规则仍需核查。
+
+免费数据源可能延迟、缺失或修订。校验失败时停止计算；来源、覆盖和冻结快照可查。现有股票池和历史年份已被反复研究，不能当作从未见过的样本外证据。
+
+当前服务只监听 `127.0.0.1`，没有为此版本建立新的公网入口。`access-key.txt`、`.env`、本机登录凭据不要公开。
+
+切换或保存计划后，历史结果必须同时匹配参数指纹和年份才能标为当前验证；读取失败可重试，不会删除历史结果。归档账户会在同一数据库事务中保存旧账本并清空当前账本；有模拟更新排队或运行时拒绝归档。前向模拟切换计划只生成新的未来指令，不补造离线交易，也不重复计算同一天的冷静期。
+
+## 开发
+
+本次 4.8 独立预览运行于 <http://127.0.0.1:8772/>，使用 `data/v4-intraday-preview`，不与 8771 共用账户。独立观察账本保存在同目录 SQLite，接收行情快照保存在 `observations/`。此前盘中研究详见 [4.6 研究结论和限制](docs/INTRADAY_4_6_REVIEW.md)。重启预览：
+
+可直接双击 `run_paper_preview.bat`。网页与常规任务使用 Python 3.12 隔离环境，神经网络和旧研究任务保留原环境的独立子进程。两套环境都曾在压力测试出现原生访问冲突，复跑通过不代表已查明底层原因；计算失败时保留上次完整记录，不把缺失结果算成功。锁定依赖见 `requirements-paper-runtime.txt`。
 
 ```powershell
-.\run_web_lan.bat
+$env:PYTHONPATH="$PWD/src"
+.\.venv-runtime-check\Scripts\python.exe scripts/launch_investor.py --port 8772 --data-dir data/v4-intraday-preview --model-python .venv/Scripts/python.exe
 ```
 
-手机和电脑连接同一个 WiFi 后，在手机浏览器打开电脑的局域网地址，例如：
-
-```text
-http://192.168.0.103:8765
-```
-
-如果打不开，通常是 Windows 防火墙拦截了 Python/Codex 的局域网访问，需要允许专用网络访问。
-
-数据网络或异地公开演示：
+[4.5 分析与验证结论](docs/INTRADAY_4_5_REVIEW.md)记录了未达到盈利验证目标的原因。可冻结重放，不需要再次联网：
 
 ```powershell
-.\run_web_public.bat
+.\.venv\Scripts\python.exe scripts/research_intraday_upgrade.py --snapshot docs/reports/intraday-20260929-183151/market.json.gz
 ```
-
-脚本会自动启动本地网页服务，并用 Cloudflare 临时隧道生成一个 `https://*.trycloudflare.com` 公网地址。手机使用数据网络、别人异地访问时，直接打开这个公网地址即可。
-
-这个公开地址只适合演示。窗口关闭后公网地址会失效；重新运行脚本会生成新的地址。任何知道该地址的人都能打开页面并点击模拟盘按钮，所以不要把它用于真实账户。
-
-停止公开访问：
 
 ```powershell
-.\stop_public_demo.bat
+$env:OMP_NUM_THREADS='2'
+$env:OPENBLAS_NUM_THREADS='2'
+$env:MKL_NUM_THREADS='2'
+.\.venv\Scripts\python.exe -m pytest -q
+cd frontend
+npm run build -- --mode investor
+node verify-investor.mjs
 ```
 
-网页面板支持后台自动运行：
+前端：`frontend/src/investor/` 四个独立页面和共享状态；后端：`src/ai_stock_bot/v4/` 的数据、事件、预测、组合、任务服务与接口。复用已有 SQLite、任务隔离和基础成交账本，不复制五套逻辑。
 
-- 点击“开始自动”后，服务端会按设定秒数循环运行模拟交易
-- 即使不一直盯着页面，只要 `run_web.bat` 的服务还在运行，自动循环就会继续
-- 点击“停止自动”会停止循环
-- 当前使用 Codex 登录态生成信号，一轮通常需要十几秒，所以自动间隔不要设太短；界面最低限制为 30 秒
+更换端口：`.\run_web.bat 8772`。旧版研究工作台仍可通过 `scripts/launch_workbench.py` 启动，旧前端构建命令是 `npm run build`。
 
-运行记录会保存到本地 SQLite 数据库：
+详见 [设计方案](docs/INVESTOR_V4_DESIGN.md)、[4.2 分类与回归对照](docs/INVESTOR_V4_2_COMPARISON.md)、[4.1 原始验证](docs/INVESTOR_V4_VALIDATION.md) 和 [旧工作台说明](docs/WORKBENCH_V3_README.md)。
 
-```text
-data/paper_trading.sqlite3
-```
+### 2026-09-30 执行与梯度树升级
 
-保存内容包括账户、AI 信号、模拟委托、持仓、行情快照和走势图历史数据。关闭网页不会丢；关闭后端服务或重启电脑后，再启动服务会恢复最近一次模拟状态。
+`run_paper_preview.bat` 启动带日志和有限重启的本地模拟服务，地址为 `http://127.0.0.1:8772/`。新增完整首次建仓、成本约束仓位及扩展特征20日正则化梯度树；当前保存的2x模拟配置已有匹配的完整历史验证。未连接真钱账户。
 
-网页面板支持两种回测模式：
-
-- 选择“策略档位”：保守、均衡、激进
-- 选择“运行模式”：本地或 AI
-- 选择“回测模式”：随机14天或固定过去一年
-- 选择“时间粒度”：快速测试按日线一天测一次；慢速测试按“自动间隔 秒”的实际粒度测，例如默认 1800 秒就是 30 分钟一次
-- 点击“开始回测”会按所选组合模拟
-- 随机14天：从历史行情里随机抽取一段交易日模拟，所以每次结果不一定一样
-- 固定过去一年：固定使用最近约 252 个交易日，适合公平对比保守、均衡、激进三档策略
-- 慢速测试会尝试拉分钟级行情；数据源通常只提供最近一段分钟线，所以固定一年慢速可能只能覆盖数据源实际可用的区间，页面会显示提示
-- 当运行模式是 AI 且 `.env` 里是 `AI_PROVIDER=codex` 时，回测会逐日调用 Codex 生成买入、卖出或观望信号，所以会比本地规则慢
-- 建议：固定过去一年和慢速测试主要用本地模式对比；AI 固定一年已禁用，AI 慢速会自动限制最多 3 个时间点，避免长时间调用 Codex
-- 回测结果不会改变当前模拟账户
-- 页面会显示起始资产、结束资产、收益率、交易次数、策略档位、运行模式、回测模式、兜底次数、测试区间、资产曲线、最终持仓和最近交易
-
-策略档位：
-
-- 保守：当前默认策略；少交易、弱信号观望、每天最多买一个标的、已有持仓不重复加仓
-- 均衡：适度放宽趋势和动量条件，允许每天最多两个买入信号
-- 激进：更重视短线动量和突破，允许更频繁交易和加仓，波动会更大
-
-## 使用 Tushare 行情
-
-先注册 Tushare Pro 并获取 token，然后改 `.env`：
-
-```env
-MARKET_DATA=tushare
-TUSHARE_TOKEN=你的 tushare token
-SYMBOLS=510300.SH,510500.SH,159915.SZ
-```
-
-运行：
-
-```powershell
-python -m ai_stock_bot --once
-```
-
-## 使用 OpenAI 生成信号
-
-```env
-AI_PROVIDER=openai
-OPENAI_API_KEY=你的 key
-OPENAI_MODEL=gpt-4.1-mini
-```
-
-没有配置 OpenAI 时，默认使用本地启发式策略。
-
-## 使用 Codex 登录态生成信号
-
-不需要 OpenAI API key。先确认 `.env`：
-
-```env
-AI_PROVIDER=codex
-CODEX_BIN=C:\Users\yummn\AppData\Local\OpenAI\Codex\bin\f1c7ee7a13db5fed\codex.exe
-CODEX_TIMEOUT_SECONDS=90
-```
-
-网页点击“运行一次”时，会调用本机已登录的 Codex CLI 生成买入、卖出或观望信号。Codex 启动一次会比本地启发式策略慢，通常需要十几秒到几十秒。
-
-## 接入 QMT / MiniQMT 实盘或仿真
-
-准备条件：
-
-- 已安装并登录 MiniQMT
-- 券商账户已开通 QMT 权限
-- Python 环境能 import `xtquant`
-- `QMT_PATH` 指向 MiniQMT 的 `userdata_mini` 目录
-
-示例 `.env`：
-
-```env
-MARKET_DATA=akshare
-BROKER=qmt
-DRY_RUN=false
-LIVE_TRADING_ACK=I_UNDERSTAND_REAL_MONEY_RISK
-
-QMT_PATH=C:\你的MiniQMT目录\userdata_mini
-QMT_ACCOUNT_ID=你的资金账号
-QMT_ACCOUNT_TYPE=STOCK
-QMT_SESSION_ID=123456
-
-SYMBOLS=510300.SH,510500.SH,159915.SZ
-ORDER_TYPE=limit
-MAX_TRADE_CASH=3000
-MAX_ORDER_SHARES=500
-MAX_POSITION_PCT=0.20
-STOP_LOSS_PCT=0.04
-TAKE_PROFIT_PCT=0.08
-```
-
-运行：
-
-```powershell
-python -m ai_stock_bot --once
-```
-
-注意：QMT 账户是实盘还是仿真，由你登录的 MiniQMT 账户决定。代码层面只要 `BROKER=qmt` 就会调用 QMT 报单接口，所以必须显式设置 `DRY_RUN=false` 和确认字符串。
-
-QMT 环境预检：
-
-```powershell
-.\run_qmt_preflight.bat
-```
-
-## 接入 PTrade
-
-PTrade 通常不是普通命令行 API，而是在券商 PTrade 平台内运行策略。项目提供了模板：
-
-[examples/ptrade_strategy_template.py](/C:/Users/yummn/Documents/Codex/2026-06-19/ai/outputs/ai_stock_bot/examples/ptrade_strategy_template.py)
-
-思路：
-
-1. 让 PTrade 的 Python 环境能 import `ai_stock_bot`
-2. 新建 PTrade 策略，复制模板内容
-3. `.env` 设置：
-
-```env
-MARKET_DATA=akshare
-BROKER=ptrade
-DRY_RUN=false
-LIVE_TRADING_ACK=I_UNDERSTAND_REAL_MONEY_RISK
-SYMBOLS=510300.SH,510500.SH,159915.SZ
-ORDER_TYPE=market
-MAX_TRADE_CASH=3000
-MAX_ORDER_SHARES=500
-```
-
-如果你的 PTrade 环境不允许访问外部包或 `.env`，需要把配置写死到策略环境里，或把行情和 AI 信号先在外部生成，再由 PTrade 读取信号文件执行。
-
-## 配置说明
-
-- `MARKET_DATA`: `yahoo`、`akshare`、`tushare`，也可以写成 `akshare,yahoo`
-- `BROKER`: `paper`、`alpaca`、`qmt`、`ptrade`
-- `SYMBOLS`: 股票代码，支持 `600519`、`600519.SH`、`600519.SS`、`sh600519`
-- `MAX_TRADE_CASH`: 单笔买入最大金额
-- `MAX_ORDER_SHARES`: 单笔最大股数，买入和卖出都限制
-- `MAX_POSITION_PCT`: 单只股票最大仓位占总资产比例
-- `MAX_DAILY_LOSS_PCT`: 当日最大亏损比例，触发后停止新开仓
-- `STOP_LOSS_PCT`: 持仓浮亏达到该比例时卖出
-- `TAKE_PROFIT_PCT`: 持仓浮盈达到该比例时卖出
-- `ORDER_TYPE`: `limit` 或 `market`
-- `LIVE_TRADING_ACK`: 实盘或券商报单必须设置为 `I_UNDERSTAND_REAL_MONEY_RISK`
-
-## 真实下单前检查
-
-1. 先 `BROKER=paper` 跑通至少几天
-2. QMT/PTrade 先用仿真账户
-3. 把 `MAX_TRADE_CASH` 和 `MAX_ORDER_SHARES` 设到很小
-4. 用 `--once` 单次运行，不要一开始就循环运行
-5. 核对券商客户端里的委托、成交、持仓和撤单行为
+[升级报告与结果边界](docs/EXECUTION_UPGRADE_20260930.md) 包含180次配对回放、实际运行一致性核验、设置备份和已知限制。长期收益改善不等于每年盈利或未来能稳定赚快钱，2022及2026年内的亏损结果没有隐藏。

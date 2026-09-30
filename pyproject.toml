@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ai-stock-bot"
-version = "0.1.0"
-description = "Conservative AI-assisted paper trading bot"
+version = "2.0.0"
+description = "Local market research, reproducible backtests, and paper trading"
 requires-python = ">=3.10"
 dependencies = [
     "requests>=2.32.0",
@@ -18,6 +18,11 @@ dependencies = [
     "scikit-learn>=1.5.0",
     "xgboost>=2.0.0",
     "torch>=2.3.0",
+    "fastapi>=0.115,<1",
+    "uvicorn>=0.30,<1",
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "psutil>=5.9,<8",
 ]
 
 [project.scripts]
@@ -26,3 +31,12 @@ ai-stock-web = "ai_stock_bot.web:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+ai_stock_bot = ["static/*", "v2/static/*", "v2/static/assets/*", "v4/static/*", "v4/static/assets/*"]
+
+[project.optional-dependencies]
+test = ["pytest>=8", "httpx>=0.27"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

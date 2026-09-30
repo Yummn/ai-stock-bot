@@ -1,5 +1,6 @@
 # Python / virtualenv
 .venv/
+.venv-runtime-check/
 __pycache__/
 *.py[cod]
 *.pyo
@@ -10,6 +11,7 @@ __pycache__/
 .ruff_cache/
 
 # Local secrets and environment
+/.private/
 .env
 .env.*
 !.env.example
@@ -50,3 +52,6 @@ Desktop.ini
 *.egg-info/
 build/
 dist/
+node_modules/
+test-results/
+playwright-report/

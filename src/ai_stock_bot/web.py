@@ -3843,6 +3843,12 @@ def create_handler(dashboard: PaperTradingDashboard, static_dir: Path):
 
 
 def main() -> None:
+    import sys
+    if "--legacy" not in sys.argv:
+        from .v2.api import main as stocklab_main
+        stocklab_main()
+        return
+    sys.argv.remove("--legacy")
     parser = argparse.ArgumentParser(description="Local AI paper trading dashboard")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
