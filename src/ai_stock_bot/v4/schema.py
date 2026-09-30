@@ -6,7 +6,7 @@ from datetime import date
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from .model_recipes import model_specs, recipe_parameters
+from .model_recipes import ModelTuning, model_specs, recipe_parameters, resolved_spec
 
 
 ASSETS = {
@@ -147,6 +147,7 @@ class Plan(BaseModel):
     participation: float = Field(.01, gt=0, le=.1)
     training_years: int = Field(3, ge=1, le=10)
     model_recipe: str = "legacy"
+    model_tuning: ModelTuning | None = None
     horizon: int = Field(5, ge=1, le=20)
     model_iterations: int = Field(120, ge=20, le=500)
     model_leaves: int = Field(7, ge=3, le=31)
@@ -166,9 +167,19 @@ class Plan(BaseModel):
                 or self.trend_signal != "multi_horizon" or self.method not in {"ml", "rotation", "hold"}):
             raise ValueError("分散核心组合仅支持回归模型或趋势、日线、1倍、成本约束与多周期波动控仓")
         if self.method == "ml" and self.model_recipe != "legacy":
-            # The named research recipe is immutable; custom tuning remains in legacy mode.
-            for key, value in recipe_parameters(self.model_recipe).items():
+            resolved_spec(self.model_recipe, self.model_tuning)
+            if self.model_tuning:
+                # Store only effective overrides, keeping old recipe identities stable.
+                base = model_specs()[self.model_recipe]
+                values = {k: v for k, v in self.model_tuning.model_dump(exclude_none=True).items()
+                          if getattr(base, k) != v}
+                self.model_tuning = ModelTuning(**values) if values else None
+            for key, value in recipe_parameters(self.model_recipe, self.model_tuning).items():
                 setattr(self, key, value)
+        elif self.model_tuning is not None:
+            raise ValueError("独立研究参数仅用于命名回归模型配方")
+        if self.model_tuning:
+            self.profile = "custom"
         self.symbols = list(dict.fromkeys(self.symbols))
         if len(self.symbols) < 2 or any(s not in ASSETS for s in self.symbols):
             raise ValueError("请至少选择两只支持的 ETF")
@@ -206,6 +217,8 @@ def with_profile(plan: Plan, profile: Literal["conservative", "balanced", "aggre
 
 def fingerprint(plan: Plan):
     values = plan.model_dump(exclude={"name", "auto_update", *RESEARCH_FIELDS})
+    if values["model_tuning"] is None:
+        values.pop("model_tuning")
     if values["allocation_policy"] == "legacy":
         for key in ("allocation_policy", "core_anchor", "risk_aversion"):
             values.pop(key)
@@ -224,6 +237,8 @@ def fingerprint(plan: Plan):
 
 def comparison_fingerprint(plan: Plan):
     values = plan.model_dump(exclude={"name", "auto_update", "method", *RESEARCH_FIELDS})
+    if values["model_tuning"] is None:
+        values.pop("model_tuning")
     if values["allocation_policy"] == "legacy":
         for key in ("allocation_policy", "core_anchor", "risk_aversion"):
             values.pop(key)

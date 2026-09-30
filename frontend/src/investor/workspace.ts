@@ -64,6 +64,7 @@ export function createInvestorWorkspace() {
     portfolio_observe: "前向对照更新",
     portfolio_test: "历史验证",
     portfolio_frequency: "频率与倍数组合实验",
+    portfolio_research: "模型研究",
     portfolio_review: "AI 解读",
     intraday_refresh: "小时行情更新",
     intraday_test: "盘中滚动验证",
@@ -173,7 +174,7 @@ export function createInvestorWorkspace() {
   }
   function signalName(plan: any) {
     return plan?.method === 'ml' && plan?.model_recipe !== 'legacy'
-      ? state.value?.model_recipes?.[plan.model_recipe]?.label || plan.model_recipe
+      ? (state.value?.model_recipes?.[plan.model_recipe]?.label || plan.model_recipe) + (plan.model_tuning ? ' · 研究参数' : '')
       : methodNames[plan?.method] || plan?.method;
   }
   function hasProfileEdits(slot: string) {
@@ -413,6 +414,18 @@ export function createInvestorWorkspace() {
       writable.value = access.write_allowed;
     } catch {}
     await refresh(true);
+    const handoff = new URLSearchParams(location.search);
+    if (state.value && handoff.has('research_job') && handoff.has('research_candidate')) {
+      try {
+        const imported = await api(`/research-workspace/draft?job_id=${encodeURIComponent(handoff.get('research_job')!)}&candidate_id=${encodeURIComponent(handoff.get('research_candidate')!)}`);
+        draft.value = {...clone(imported.plan), name: state.value.settings.plan.name};
+        profileSlot.value = 'custom';
+        draftRevision.value = state.value.settings.revision;
+        navigate('plan');
+        notify(`已载入研究草稿「${imported.label}」，尚未保存或启用；原账户与其他档位不变。`);
+        history.replaceState(null, '', '/#plan');
+      } catch (e: any) { error.value = e.message; }
+    }
     await loadChart();
     if (alive) timer = setTimeout(loop, 3000);
   });

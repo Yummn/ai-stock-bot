@@ -86,7 +86,8 @@ class Portfolio:
         self.actions.sort(key=lambda row:(row['date'], 0 if 'split' in row else 1))
         if self.method == "ml" and plan.model_recipe != "legacy":
             from .research_forecast import ResearchForecasts
-            self.forecasts = ResearchForecasts(store, histories, progress, recipe=plan.model_recipe)
+            self.forecasts = ResearchForecasts(store, histories, progress, recipe=plan.model_recipe,
+                                              tuning=plan.model_tuning)
         else:
             self.forecasts = Forecasts(store, histories, forecast_plan or plan, progress, model=self.method) if self.method in {"ml", "ml_class", "cnn", "cnn_class"} else None
         self.signals = {}

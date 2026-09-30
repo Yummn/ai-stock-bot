@@ -59,6 +59,9 @@ def _local_broker_request(request: Request) -> bool:
 
 
 def register(app, store, lock):
+    from .lab_routes import register as register_lab
+    register_lab(app, store, lock)
+
     @app.get('/api/v2/investment/broker/availability')
     def broker_availability(request: Request):
         from .broker_emt import available, order_available

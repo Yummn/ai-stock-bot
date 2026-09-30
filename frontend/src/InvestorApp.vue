@@ -102,7 +102,7 @@ const {
         <span class="connection" :class="{ offline: !connected }"
           ><i />{{ connected ? "服务已连接" : "连接中断" }}</span
         ><a
-          href="/?lab=1#strategy"
+          href="/?lab=1#compare"
           class="icon-button"
           title="研究工具"
           aria-label="研究工具"

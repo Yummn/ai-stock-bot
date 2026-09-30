@@ -22,7 +22,7 @@ def returns_fixture():
 @pytest.mark.parametrize("comparison", [False, True])
 def test_legacy_fingerprint_unchanged(comparison):
     plan = Plan()
-    excluded = {"name", "auto_update", "execution_policy", "model_recipe", "preset_version", "signal_policy", "risk_review",
+    excluded = {"name", "auto_update", "execution_policy", "model_recipe", "model_tuning", "preset_version", "signal_policy", "risk_review",
                 "allocation_policy", "core_anchor", "risk_aversion", *RESEARCH_FIELDS}
     if comparison:
         excluded.add("method")

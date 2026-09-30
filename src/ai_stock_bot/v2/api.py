@@ -257,7 +257,7 @@ def create_app(data_root: Path | None = None, legacy_path: Path | None = None, s
 
     @app.get("/api/v2/jobs")
     def jobs(limit: int = 20, offset: int = 0, kind: str | None = None):
-        if kind and kind not in {"backtest", "evaluate", "learn", "refresh", "paper", "research"}:
+        if kind and kind not in {"backtest", "evaluate", "learn", "refresh", "paper", "research", "portfolio_research"}:
             raise ValueError("任务类型无效")
         return store.jobs(max(1, min(limit, 100)), max(offset, 0), kind)
 

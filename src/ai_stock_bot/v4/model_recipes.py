@@ -1,5 +1,37 @@
 """Immutable signal recipes shared by offline research and portfolio execution."""
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class ModelTuning(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    years: int | None = Field(None, ge=1, le=10)
+    horizon: int | None = Field(None, ge=1, le=20)
+    iterations: int | None = Field(None, ge=20, le=500)
+    leaves: int | None = Field(None, ge=3, le=31)
+    leaf_samples: int | None = Field(None, ge=5, le=500)
+    regularization: float | None = Field(None, ge=.001, le=10000)
+    window: int | None = Field(None, ge=10, le=60)
+    epochs: int | None = Field(None, ge=4, le=30)
+
+
+TUNABLE_FIELDS = {
+    "hgb": ("years", "horizon", "iterations", "leaves", "leaf_samples", "regularization"),
+    "ridge": ("years", "horizon", "regularization"),
+    "extra": ("years", "horizon", "iterations", "leaf_samples"),
+    "xgb": ("years", "horizon", "iterations", "regularization"),
+    "cnn": ("years", "horizon", "window", "epochs"),
+}
+
+
+def resolved_spec(key, tuning=None):
+    spec = model_specs()[key]
+    values = ModelTuning.model_validate(tuning or {}).model_dump(exclude_none=True)
+    invalid = set(values) - set(TUNABLE_FIELDS[spec.model])
+    if invalid:
+        raise ValueError("此模型不使用参数：" + ", ".join(sorted(invalid)))
+    return replace(spec, **values)
 
 
 @dataclass(frozen=True)
@@ -54,8 +86,8 @@ def recipe_catalog():
     return {key: {"label": RECIPE_LABELS[key], **asdict(spec)} for key, spec in model_specs().items()}
 
 
-def recipe_parameters(key):
-    spec = model_specs()[key]
+def recipe_parameters(key, tuning=None):
+    spec = resolved_spec(key, tuning)
     values = dict(training_years=spec.years, horizon=spec.horizon, min_samples=800,
                   model_iterations=spec.iterations, model_leaves=spec.leaves, model_learning_rate=.04)
     if spec.model == "cnn":

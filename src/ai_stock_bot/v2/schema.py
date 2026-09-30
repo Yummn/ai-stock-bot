@@ -206,10 +206,12 @@ class AppConfig(StrictModel):
 
 
 from ..v4.schema import Plan as InvestmentPlan
+from ..v4.lab_schema import Study
 
 
 class JobRequest(StrictModel):
-    kind: Literal["backtest", "evaluate", "learn", "refresh", "paper", "research", "portfolio_test", "portfolio_frequency", "portfolio_update", "portfolio_review", "portfolio_observe", "intraday_refresh", "intraday_test"] = "backtest"
+    kind: Literal["backtest", "evaluate", "learn", "refresh", "paper", "research", "portfolio_research", "portfolio_test", "portfolio_frequency", "portfolio_update", "portfolio_review", "portfolio_observe", "intraday_refresh", "intraday_test"] = "backtest"
+    study: Study | None = None
     observation_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{32}$")
     observation_automatic: bool = False
     investment: InvestmentPlan | None = None
@@ -227,6 +229,8 @@ class JobRequest(StrictModel):
 
     @model_validator(mode="after")
     def weights_valid(self):
+        if self.kind == "portfolio_research" and (self.study is None or self.investment is None or self.investment.research_interval != "daily"):
+            raise ValueError("研究任务需要研究配置和日线计划快照")
         if self.kind == 'portfolio_observe' and not self.observation_id:
             raise ValueError('前向观察任务缺少记录编号')
         if (self.kind.startswith("portfolio_") or self.kind.startswith("intraday_")) and self.investment is None:

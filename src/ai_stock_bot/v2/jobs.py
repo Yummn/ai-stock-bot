@@ -20,6 +20,8 @@ def external_runtime(request, research_python=None, model_python=None):
         return research_python
     if not model_python:
         return None
+    if request.kind == "portfolio_research":
+        return model_python
     if not request.kind.startswith(("portfolio_", "intraday_")):
         return model_python
     if request.kind == "portfolio_test" and request.compare_models:
@@ -76,6 +78,9 @@ def execute_job(root, job_id):
             from ..v4.data import refresh_intraday
             if request.kind == "portfolio_test":
                 result = comparison(store, job_id, request, progress)
+            elif request.kind == "portfolio_research":
+                from ..v4.lab import run_study
+                result = run_study(store, job_id, request, progress)
             elif request.kind == "portfolio_frequency":
                 result = frequency_comparison(store, request, progress)
             elif request.kind == "portfolio_update":

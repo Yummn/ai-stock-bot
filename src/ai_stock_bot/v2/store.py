@@ -144,6 +144,16 @@ class Store:
         if request.get("investment") is not None:
             plan = request["investment"]
             data["summary"] = {"name": plan["name"], "engine": "portfolio", "method": plan["method"], "years": request.get("years")}
+            if data['kind'] == 'portfolio_research' and request.get('study'):
+                from ..v4.model_recipes import RECIPE_LABELS
+                study = request['study']
+                data['summary'].update(
+                    name=('参数优化 · ' + RECIPE_LABELS.get(study['recipe'], study['recipe'])
+                          if study['mode'] == 'tune' else f"方案对比 · {len(study['recipes'])} 项"),
+                    plan_name=plan['name'], mode=study['mode'],
+                    years=list(range(study['start_year'], study['end_year'] + 1)),
+                    check_years=(list(range(study['check_start_year'], study['check_end_year'] + 1))
+                                 if study['mode'] == 'tune' else []))
         else:
             config = request["config"]
             data["summary"] = {"name": config["name"], "engine": config["engine"], "model": config["model"], "profile": config["profile"], "auto_profile": config.get("auto_profile", False), "profile_selection": config.get("profile_selection", "trend" if config.get("auto_profile") else "fixed"), "profiles": request.get("profiles"), "year": request.get("year"), "years": request.get("years"), "period": request.get("period")}

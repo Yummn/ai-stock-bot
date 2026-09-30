@@ -13,7 +13,7 @@ SHARED_FIELDS = frozenset({"name", "starting_cash", "auto_update", "validation_s
 
 def signal_name(plan):
     if plan.method == "ml" and plan.model_recipe != "legacy":
-        return RECIPE_LABELS[plan.model_recipe]
+        return RECIPE_LABELS[plan.model_recipe] + (" · 研究参数" if plan.model_tuning else "")
     return METHODS[plan.method]
 
 
@@ -52,7 +52,7 @@ def view(store, current):
     for slot, saved in record["entries"].items():
         plan = Plan.model_validate({**saved, **shared})
         reference = FIXED_PROFILE_PRESETS.get(slot)
-        modified = not reference or any(getattr(plan, k) != v for k, v in reference.items()
+        modified = bool(plan.model_tuning) or not reference or any(getattr(plan, k) != v for k, v in reference.items()
                                        if k != "label" and k not in SHARED_FIELDS)
         entries[slot] = {"plan": plan.model_dump(), "plan_key": fingerprint(plan),
                          "modified": modified, "signal_name": signal_name(plan)}

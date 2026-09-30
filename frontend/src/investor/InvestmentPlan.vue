@@ -108,7 +108,8 @@ const reportMatchesPeriod = computed(() => reportMatchesPlan.value && !!draft.va
   Number(report.value.end.slice(0, 4)) === Number(draft.value.validation_end_year));
 const machineSelected = computed(() => !["rotation", "hold"].includes(draft.value.method));
 const fixedRecipe = computed(() => draft.value?.method === 'ml' && draft.value?.model_recipe !== 'legacy');
-const activeSpec = computed(() => fixedRecipe.value ? state.value?.model_recipes?.[draft.value.model_recipe] : null);
+const activeSpec = computed(() => fixedRecipe.value ? { ...state.value?.model_recipes?.[draft.value.model_recipe],
+  ...Object.fromEntries(Object.entries(draft.value.model_tuning || {}).filter(([,value]) => value != null)) } : null);
 const fixedProfile = computed(() => profileSlot.value !== 'custom' && !editingProfile.value);
 const matchesRecommendation = computed(() => Object.entries(state.value?.profiles?.[profileSlot.value] || {}).length > 0 &&
   Object.entries(state.value.profiles[profileSlot.value]).every(([key, value]) => key === 'label' || JSON.stringify(draft.value[key]) === JSON.stringify(value)));
@@ -121,7 +122,7 @@ const modelChoice = computed({
     const recipes: Record<string, string> = { hgb: 'hgb20_regularized', ridge: 'ridge20', extra: 'extra20', xgb: 'xgb20', temporal: 'cnn20' };
     if (recipes[choice]) {
       draft.value.method = 'ml'; draft.value.model_recipe = recipes[choice]; chooseRecipe();
-    } else { draft.value.method = choice; draft.value.model_recipe = 'legacy'; }
+    } else { draft.value.method = choice; draft.value.model_recipe = 'legacy'; draft.value.model_tuning = null; }
   },
 });
 const allocationNames: Record<string, string> = { legacy: '原分层配置', defensive_v1: '防守核心 + 模型调整', balanced_v1: '分散增长 + 模型调整' };
@@ -147,6 +148,7 @@ watch(fixedProfile, (fixed) => {
   if (fixed) { planSection.value = 'basic'; parametersOpen.value = false; }
 });
 function chooseRecipe() {
+  draft.value.model_tuning = null;
   const spec = state.value?.model_recipes?.[draft.value.model_recipe];
   if (spec && draft.value.method === 'ml') {
     Object.assign(draft.value, { training_years: spec.years, horizon: spec.horizon, min_samples: 800,
@@ -188,6 +190,7 @@ function restoreRecommendation() {
   for (const [field, value] of Object.entries(preset))
     if (field !== 'label' && !state.value.profile_library.shared_fields.includes(field)) draft.value[field] = clone(value);
   draft.value.preset_version = 1;
+  draft.value.model_tuning = null;
   draft.value.profile = key;
   planSection.value = "basic";
   editingProfile.value = false;
@@ -569,6 +572,7 @@ function changeAllocation(group: string, event: Event) {
         </div>
         <div class="form-grid">
           <label v-if="draft.method === 'ml'" class="recipe-choice">模型配方<select v-model="draft.model_recipe" aria-label="模型配方" @change="chooseRecipe"><option value="legacy">基础梯度树 · 自定义参数</option><option v-for="(spec, key) in state.model_recipes" :key="key" :value="key">{{ spec.label }}</option></select></label>
+          <details v-if="draft.model_tuning"><summary>已载入的研究参数</summary><dl><template v-for="(value, key) in draft.model_tuning" :key="key"><template v-if="value != null"><dt>{{ key }}</dt><dd>{{ value }}</dd></template></template></dl></details>
           <label>训练窗口 / 年<input type="number" min="1" max="10" v-model.number="draft.training_years" :disabled="fixedRecipe" /></label>
           <label>预测持有期 / 交易日<input type="number" min="1" max="20" v-model.number="draft.horizon" :disabled="fixedRecipe" /></label>
           <label>最小训练样本<input type="number" min="100" max="100000" v-model.number="draft.min_samples" :disabled="fixedRecipe" /></label>
