@@ -5,7 +5,7 @@ import { api, pct, dateTime, money } from '../api';
 import PortfolioChart from '../components/PortfolioChart.vue';
 import { useInvestor } from './workspace';
 
-const { state, dirty, writable, showLogin, methodNames, gainClass, refresh } = useInvestor();
+const { state, dirty, writable, showLogin, signalName, gainClass, refresh } = useInvestor();
 const data = ref<any>({ current: null, archives: [] });
 const loading = ref(true), busy = ref(false), error = ref(''), confirming = ref(false);
 const study = computed(() => data.value.current);
@@ -18,15 +18,23 @@ const series = computed(() => Object.entries(study.value?.books || {}).map(([key
   points: value.curve.map((p: any) => ({ date: p.date, value: (p.equity / study.value.plan.starting_cash - 1) * 100 })),
 })));
 let alive = true, timer: ReturnType<typeof setTimeout>;
+let readSequence = 0;
 async function load() {
-  try { data.value = await api('/investment/observation'); error.value = ''; }
-  catch (cause: any) { error.value = cause.message; }
-  finally { loading.value = false; }
+  if (busy.value) return;
+  const sequence = ++readSequence;
+  try {
+    const result = await api('/investment/observation');
+    if (alive && sequence === readSequence) {data.value = result; error.value = '';}
+  }
+  catch (cause: any) { if (alive && sequence === readSequence) error.value = cause.message; }
+  finally { if (alive && sequence === readSequence) loading.value = false; }
 }
 async function poll() { await load(); if (alive) timer = setTimeout(poll, working.value ? 2500 : 10000); }
 async function act(action: string) {
+  if (busy.value) return;
   if (!writable.value) { showLogin.value = true; return; }
   busy.value = true; error.value = '';
+  ++readSequence;
   try {
     data.value = await api('/investment/observation', { method: 'POST', body: JSON.stringify({
       action, revision: study.value?.revision, plan_key: state.value.plan_key,
@@ -55,7 +63,7 @@ onBeforeUnmount(() => { alive = false; clearTimeout(timer); });
     <template v-else-if="!study">
       <div class="validation-plan">
         <div><strong>尚未开始独立观察</strong>
-          <p>{{ methodNames[state.settings.plan.method] }} · {{ state.settings.plan.research_multiple }}x · {{ money(state.settings.plan.starting_cash) }} 元模拟本金</p>
+          <p>{{ signalName(state.settings.plan) }} · {{ state.settings.plan.research_multiple }}x · {{ money(state.settings.plan.starting_cash) }} 元模拟本金</p>
           <small>收益从启动后计算；参数固定，三组模拟账户分别记账，不影响总览账户。</small>
         </div>
         <button class="primary" :disabled="busy || dirty || state.settings.plan.research_interval !== 'daily'" @click="act('start')"><Play :size="16" />开始观察已保存计划</button>
@@ -66,7 +74,7 @@ onBeforeUnmount(() => { alive = false; clearTimeout(timer); });
     <template v-else>
       <div class="validation-plan" :class="{ warning: !study.same_plan || study.status === 'paused' }">
         <div><strong>{{ study.status === 'paused' ? '已暂停' : '观察中' }} · {{ study.plan.name }}</strong>
-          <p>{{ methodNames[study.plan.method] }} · {{ study.plan.research_multiple }}x · {{ stamp(study.created_at) }} 启动</p>
+          <p>{{ signalName(study.plan) }} · {{ study.plan.research_multiple }}x · {{ stamp(study.created_at) }} 启动</p>
           <small v-if="!study.same_plan">当前投资计划与此观察不同；此处仍使用启动时的参数，记录未被重置。</small>
           <small v-else>计划已冻结 · 参数编号 {{ study.plan_key }}</small>
         </div>
@@ -89,7 +97,7 @@ onBeforeUnmount(() => { alive = false; clearTimeout(timer); });
       <section v-if="summary?.sessions" class="section">
         <h2>启动后的模拟收益</h2><PortfolioChart :series="series" percentage />
       </section>
-      <div v-if="summary" class="table-wrap">
+      <div v-if="summary" class="table-scroll">
         <table><thead><tr><th>对照方案</th><th>收益</th><th>最大回撤</th><th>成交</th><th>费用 / 利息</th></tr></thead>
           <tbody><tr v-for="(book, key) in study.books" :key="key"><td>{{ names[key] }}</td><td :class="gainClass(book.return_pct)">{{ pct(book.return_pct) }}</td><td>{{ pct(book.max_drawdown) }}</td><td>{{ book.trade_count }}</td><td>{{ money(book.fees) }} / {{ money(book.interest_paid) }}</td></tr></tbody>
         </table>
@@ -106,8 +114,8 @@ onBeforeUnmount(() => { alive = false; clearTimeout(timer); });
     </template>
     <p class="small-note observation-note">自动观察在工作日收盘后运行，本机服务需保持开启；长任务可能延后更新。仅按已保存指令模拟之后的开盘成交，含手续费、滑点及借款利息，不代表实时撮合。收益含持仓浮动盈亏，未扣未来平仓费；离线期间不补造交易决策。</p>
     <details v-if="data.archives.length" class="section"><summary>已归档观察 · {{ data.archives.length }}</summary>
-      <div class="table-wrap"><table><thead><tr><th>开始时间</th><th>计划</th><th>收益</th><th>观察日</th><th>记录</th></tr></thead><tbody>
-        <tr v-for="item in data.archives" :key="item.id"><td>{{ stamp(item.created_at) }}</td><td>{{ methodNames[item.plan.method] }} · {{ item.plan.research_multiple }}x</td><td>{{ pct(item.books.strategy?.return_pct) }}</td><td>{{ item.books.strategy?.observed_sessions || 0 }}</td><td><button class="icon-button" title="导出归档记录" aria-label="导出归档记录" @click="download(item.id)"><Download :size="16" /></button></td></tr>
+      <div class="table-scroll"><table><thead><tr><th>开始时间</th><th>计划</th><th>收益</th><th>观察日</th><th>记录</th></tr></thead><tbody>
+        <tr v-for="item in data.archives" :key="item.id"><td>{{ stamp(item.created_at) }}</td><td>{{ signalName(item.plan) }} · {{ item.plan.research_multiple }}x</td><td>{{ pct(item.books.strategy?.return_pct) }}</td><td>{{ item.books.strategy?.observed_sessions || 0 }}</td><td><button class="icon-button" title="导出归档记录" aria-label="导出归档记录" @click="download(item.id)"><Download :size="16" /></button></td></tr>
       </tbody></table></div>
     </details>
   </section>

@@ -6,6 +6,7 @@ import { useInvestor } from "./workspace";
 
 const { state, navigate, methodNames } = useInvestor();
 const live = computed(() => state.value.live);
+const accountView = ref<'live' | 'simulation'>('live');
 const connected = computed(() => !!liveSnapshot.value);
 const local = ["127.0.0.1", "localhost"].includes(location.hostname);
 const sdkAvailable = ref(false);
@@ -171,7 +172,11 @@ const steps = computed(() => [
       </div>
     </div>
 
-    <section class="section">
+    <div class="validation-modes broker-modes" role="tablist" aria-label="券商账户类型">
+      <button role="tab" :aria-selected="accountView === 'live'" :class="{selected:accountView === 'live'}" :disabled="testBusy || orderBusy" @click="accountView = 'live'">真实账户 · 只读</button>
+      <button role="tab" :aria-selected="accountView === 'simulation'" :class="{selected:accountView === 'simulation'}" :disabled="liveBusy" @click="accountView = 'simulation'">券商仿真 · 测试</button>
+    </div>
+    <section v-show="accountView === 'simulation'" class="section">
       <div class="section-heading">
         <h2>EMT 仿真账户</h2>
         <span>查询 · 仅本机</span>
@@ -209,11 +214,8 @@ const steps = computed(() => [
       <p v-else class="live-footnote">{{ local ? "本机缺少 EMT 仿真 SDK，请检查安装。" : "券商账户查询仅能在电脑本机的 127.0.0.1 页面使用。" }}</p>
     </section>
 
-    <section class="section" v-if="local && testOrderAvailable">
-      <div class="section-heading">
-        <h2>手动仿真测试委托</h2>
-        <span>仅测试环境 · 不会使用真钱</span>
-      </div>
+    <details class="section" v-if="accountView === 'simulation' && local && testOrderAvailable">
+      <summary>手动仿真测试委托 <span>不使用真钱</span></summary>
       <p class="live-footnote">仅限已核验的普通 EMT API 仿真账号。每次只买入 100 份列表中的 ETF，使用你指定的限价；不会自动选股、自动重试或使用融资。订单号不等于已成交。</p>
       <form class="broker-form test-order-form" autocomplete="off" @submit.prevent="prepareOrder">
         <label>ETF
@@ -243,9 +245,9 @@ const steps = computed(() => [
         <p>{{ orderResult.state === 'reported' ? '已收到券商订单回报，请以仿真终端中的最终状态为准。' : '已获得委托号，但订单状态暂不明确；请到仿真终端核对，不要重复提交。' }}</p>
         <p v-if="orderResult.report">状态码 {{ orderResult.report.order_status }} · 已成交 {{ orderResult.report.quantity_traded }} 份 · 错误码 {{ orderResult.report.error_id }}</p>
       </div>
-    </section>
+    </details>
 
-    <div class="live-grid">
+    <div v-show="accountView === 'live'" class="live-grid">
       <section class="section">
         <div class="section-heading">
           <h2>实盘账户</h2>
@@ -297,7 +299,8 @@ const steps = computed(() => [
       </section>
     </div>
 
-    <section class="section">
+    <details class="section">
+      <summary>真实交易状态与计划指令</summary>
       <div class="section-heading">
         <h2>交易状态</h2>
         <span>默认关闭</span>
@@ -314,6 +317,6 @@ const steps = computed(() => [
         <p>投资计划选择了 <strong>{{ live.requested_interval !== 'daily' ? live.requested_interval + ' T+0 规则策略' : methodNames[state.settings.plan.method] }} · {{ live.requested_multiple }}x</strong>。模拟账户会按该指令记账；上方手动仿真测试委托不执行此计划。实盘执行与融资权限尚未核验，不能据此真实下单。</p>
         <button class="link-button" @click="navigate('plan')">查看投资计划 <ChevronRight :size="15" /></button>
       </div>
-    </section>
+    </details>
   </section>
 </template>

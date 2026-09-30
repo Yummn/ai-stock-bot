@@ -180,7 +180,12 @@ def summary(store):
         review = None
     account = state["account"] if state else {"cash": plan.starting_cash, "equity": plan.starting_cash, "positions": {}, "trades": [], "fees": 0}
     with store.connect() as c:
-        jobs = [dict(r) for r in c.execute("SELECT id,kind,status,progress,message,created,updated,error FROM jobs WHERE kind LIKE 'portfolio_%' OR kind LIKE 'intraday_%' ORDER BY created DESC LIMIT 12")]
+        jobs = [dict(r) for r in c.execute(
+            "SELECT id,kind,status,progress,message,created,updated,error FROM jobs "
+            "WHERE (kind LIKE 'portfolio_%' OR kind LIKE 'intraday_%') AND "
+            "(status IN ('queued','running') OR id IN (SELECT id FROM jobs "
+            "WHERE kind LIKE 'portfolio_%' OR kind LIKE 'intraday_%' ORDER BY created DESC LIMIT 12)) "
+            "ORDER BY created DESC")]
     return {"settings": current, "plan_key": fingerprint(plan), "account": {**account, "trades": account["trades"][-30:]},
             "date": state.get("last_date") if state else None,
             "quote_age_days": (today()-dt.date.fromisoformat(state['last_date'][:10])).days if state and state.get('last_date') else None,

@@ -22,6 +22,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--snapshot", type=Path)
     parser.add_argument("--serve", type=int)
+    parser.add_argument("--static-root", type=Path, default=OUTPUT / "ui-dist")
     parser.add_argument("--mode", choices=["compare", "tune"], default="compare")
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args()
@@ -29,7 +30,7 @@ def main():
     if args.serve:
         import uvicorn
         from ai_stock_bot.v2.api import create_app
-        uvicorn.run(create_app(store.root, static_root=OUTPUT / "ui-dist", start_manager=False),
+        uvicorn.run(create_app(store.root, static_root=args.static_root, start_manager=False),
                     host="127.0.0.1", port=args.serve)
         return
     if not args.snapshot:

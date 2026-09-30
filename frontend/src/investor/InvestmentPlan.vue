@@ -26,6 +26,7 @@ const {
   tabs,
   page,
   state,
+  activeProfileName,
   draft,
   report,
   reportError,
@@ -86,6 +87,7 @@ const {
   ratio,
 } = useInvestor();
 const parametersOpen = ref(false);
+const bufferedEdits = computed(() => Object.keys(profileDrafts.value).some(hasProfileEdits));
 const editingProfile = ref(false);
 const planSection = ref<"basic" | "advanced">("basic");
 const lastMachine = ref("ml");
@@ -210,7 +212,7 @@ function changeAllocation(group: string, event: Event) {
 }
 </script>
 <template>
-  <section>
+  <section class="plan-page" :class="{'has-draft': dirty}">
     <div class="page-title">
       <div>
         <p class="eyebrow">一个账户 · 各档独立保存</p>
@@ -223,11 +225,11 @@ function changeAllocation(group: string, event: Event) {
           }}
         </p>
       </div>
-      <div class="actions">
-        <button :disabled="!dirty || busy" @click="restoreDraft()">
-          撤销草稿</button
+      <div v-if="dirty || bufferedEdits" class="actions plan-save-actions">
+        <button :disabled="busy" @click="restoreDraft()">
+          放弃所有草稿</button
         ><button class="primary" :disabled="busy || !dirty" @click="save">
-          <Save :size="16" />保存并使用{{ profileName }}
+          <Save :size="16" />{{ dirty && profileSlot !== state.profile_library.active_slot && !hasProfileEdits(profileSlot) ? '启用' : '保存并使用' }}{{ profileName }}
         </button>
       </div>
     </div>
@@ -246,10 +248,10 @@ function changeAllocation(group: string, event: Event) {
       <button role="tab" :aria-selected="planSection === 'basic'" :class="{ selected: planSection === 'basic' }" @click="planSection = 'basic'">计划概览</button>
       <button role="tab" :aria-selected="planSection === 'advanced'" :class="{ selected: planSection === 'advanced' }" @click="planSection = 'advanced'">详细设置</button>
     </div>
-    <div class="plan-layout">
-      <div>
+    <div class="plan-layout" :class="{'preset-layout': fixedProfile}">
+      <fieldset class="plan-fields" :disabled="busy">
         <section class="section">
-          <h2>资金与风险</h2>
+          <div class="section-heading"><h2>选择方案</h2><span>正在使用：{{ activeProfileName }}</span></div>
           <div class="risk-profile" role="group" aria-label="风险方案">
             <button v-for="option in profileOptions" :key="option.key" type="button"
               :class="{ selected: profileSlot === option.key }"
@@ -258,15 +260,7 @@ function changeAllocation(group: string, event: Event) {
             </button>
           </div>
           <p v-if="profileOptions.some(option => hasProfileEdits(option.key))" class="small-note">未保存档位：{{ profileOptions.filter(option => hasProfileEdits(option.key)).map(option => option.label).join('、') }}</p>
-          <div class="form-grid compact-fields">
-            <label
-              >模拟起始资金 / 元<input
-                type="number"
-                v-model.number="draft.starting_cash"
-                min="1000"
-                :disabled="!!state.started_at"
-            /></label>
-          </div>
+          <p class="profile-intent">{{ ({conservative:'防守优先，控制波动与回撤', balanced:'分散增长，在收益与风险之间取舍', aggressive:'争取更高收益，承受更大的波动与借款风险', custom:'自行配置策略、执行与风险参数'} as Record<string,string>)[profileSlot] }}</p>
           <button v-if="!fixedProfile" type="button" class="link-button" @click="planSection = 'advanced'">查看投入上限与风控细节 <ChevronRight :size="15" /></button>
         </section>
         <section v-if="fixedProfile" class="section" aria-label="固定方案摘要">
@@ -300,13 +294,12 @@ function changeAllocation(group: string, event: Event) {
               <p class="small-note">前段选择参数，锁定后检查后段。新方案并非在每个区间都更好；这些年份曾用于研究，并非全新样本外证明。2023–2025 与 2026 分别独立起跑；净年化与区间收益计入期末卖出成本，最差年按连续账户年末净值计算。</p>
             </details>
           </template>
-          <label class="check-field"><input type="checkbox" v-model="draft.auto_update" /><span>工作日 16:00 后自动更新模拟</span></label>
         </section>
         <div v-if="!fixedProfile && profileSlot !== 'custom'" class="section-heading profile-edit-heading">
           <strong>正在调整{{ profileName }} · 独立保存</strong>
           <div class="actions"><button type="button" @click="restoreRecommendation"><RefreshCw :size="15" />恢复本档推荐</button><button type="button" @click="editingProfile = false">收起参数</button></div>
         </div>
-        <details v-if="study" class="section profile-study">
+        <details v-if="study && !fixedProfile && planSection === 'advanced'" class="section profile-study">
           <summary>{{ profileName }} · 算法比较</summary>
           <p>{{ study.conclusion }}</p>
           <p class="small-note">2020–2022选择参数，2023–2024比较算法；再检查2025、2026和完整区间。历史曾被研究，不代表未来盈利。</p>
@@ -363,16 +356,9 @@ function changeAllocation(group: string, event: Event) {
               <option value="legacy">原始均线 · 对照用</option>
             </select></label>
           </div>
-          <label class="check-field"
-            ><input type="checkbox" v-model="draft.auto_update" /><span
-            >{{ draft.research_interval !== 'daily' ? '交易时段每根 K 线完成后自动更新模拟' : '工作日 16:00 后自动更新模拟' }}</span
-            ></label
-          ><small
-            >仅更新模拟账户，不会向券商下单；节假日无新行情时不重复成交。</small
-          >
         </section>
-        <section v-if="!fixedProfile && planSection === 'basic'" class="section">
-          <h2>投资范围</h2>
+        <details v-if="!fixedProfile && planSection === 'basic'" class="section">
+          <summary>投资范围 <span>{{ draft.symbols.length }} 只 ETF</span></summary>
           <div class="asset-options">
             <label v-for="(v, s) in state.catalog" :key="s"
               ><input type="checkbox" v-model="draft.symbols" :value="s" /><span
@@ -382,7 +368,7 @@ function changeAllocation(group: string, event: Event) {
             >
           </div>
           <p class="small-note">已选 {{ draft.symbols.length }} 只 ETF。板块比例可在详细设置调整。</p>
-        </section>
+        </details>
         <section v-if="!fixedProfile && planSection === 'basic'" class="section">
           <h2>执行模式</h2>
           <p class="small-note">保存后用于后续模拟更新；验证使用相同粒度和倍数。切换粒度或倍数前需归档当前模拟。实盘未连接时不会下单。</p>
@@ -410,9 +396,9 @@ function changeAllocation(group: string, event: Event) {
           <p v-if="draft.research_interval !== 'daily' && !t0Choices.length" class="notice warning">投资范围没有支持盘中模拟的 ETF，请先选入黄金、国债或纳指 ETF。</p>
           <button type="button" class="link-button" @click="navigate('validation')">去验证当前计划 <ChevronRight :size="15" /></button>
         </section>
-        <section v-if="planSection === 'advanced'" class="section">
-          <h2>资金与风险细节</h2>
-          <p class="small-note">修改这些值后风险档会显示为“自定义”，保存后需要重新验证。</p>
+        <details v-if="planSection === 'advanced'" class="section" open>
+          <summary>资金与风险细节</summary>
+          <p class="small-note">修改会保存在{{ profileName }}档内，保存后需要重新验证。</p>
           <div class="form-grid">
             <label v-if="draft.research_interval === 'daily' && draft.method !== 'hold'">组合政策<select v-model="draft.allocation_policy" aria-label="组合政策" @change="draft.profile = 'custom'">
               <option value="legacy">原分层配置</option>
@@ -432,9 +418,9 @@ function changeAllocation(group: string, event: Event) {
             <label>账户回撤暂停线 / %<input type="number" min="2" max="50" :value="draft.drawdown_pause * 100" @input="ratio('drawdown_pause', $event)" :disabled="draft.method === 'hold' && draft.research_interval === 'daily'" /></label>
             <label v-if="draft.research_interval === 'daily'">最多持有 / 只<input type="number" min="1" max="4" v-model.number="draft.holdings" @change="draft.profile = 'custom'" :disabled="draft.method === 'hold'" /></label>
           </div>
-        </section>
-        <section v-if="planSection === 'advanced' && draft.research_interval === 'daily'" class="section">
-          <h2>板块分配偏好</h2>
+        </details>
+        <details v-if="planSection === 'advanced' && draft.research_interval === 'daily'" class="section">
+          <summary>板块分配偏好</summary>
           <div class="sector-allocation">
             <div class="section-heading">
               <span>可投入资金的 {{ pct(allocated) }}</span>
@@ -448,9 +434,9 @@ function changeAllocation(group: string, event: Event) {
             </div>
             <p class="small-note">参考金额不是固定承诺；未入选板块的份额可分给其他合格板块，受单只上限约束。</p>
           </div>
-        </section>
-        <section v-if="planSection === 'advanced' && draft.research_interval !== 'daily'" class="section">
-          <h2>盘中信号参数</h2>
+        </details>
+        <details v-if="planSection === 'advanced' && draft.research_interval !== 'daily'" class="section">
+          <summary>盘中信号参数</summary>
           <div class="form-grid">
             <label>成本门槛倍数<input type="number" min="1" max="5" step="0.1" v-model.number="draft.intraday_cost_buffer" :disabled="draft.intraday_strategy === 'legacy'" /></label>
             <label>波动风险预算 / %<input type="number" min="0.2" max="10" step="0.1" :value="draft.intraday_risk_budget * 100" @input="ratio('intraday_risk_budget', $event)" :disabled="draft.intraday_strategy === 'legacy'" /></label>
@@ -461,15 +447,15 @@ function changeAllocation(group: string, event: Event) {
             <label>预测持有 / 交易小时<input type="number" min="1" max="16" v-model.number="draft.intraday_horizon_hours" /></label>
           </div>
           <p class="small-note">波动预算不是最大亏损保证。盘中回归只使用今天之前结束的标签；训练不足或隔离校验不优于零收益预测时不新增仓位。其他盘中策略的动量不是预期收益。</p>
-        </section>
-        <section v-if="planSection === 'advanced' && draft.research_multiple > 1" class="section">
-          <h2>模拟融资参数</h2>
+        </details>
+        <details v-if="planSection === 'advanced' && draft.research_multiple > 1" class="section">
+          <summary>模拟融资参数</summary>
           <p class="small-note">日线与盘中模拟都会计入借款利息和维保减仓；真实利率和券商规则尚未接入。</p>
           <div class="form-grid">
             <label>假设年化融资成本 / %<input type="number" min="0" max="30" step="0.5" :value="draft.research_annual_rate * 100" @input="ratio('research_annual_rate', $event)" /></label>
             <label>假设维保线 / %<input type="number" min="0" max="80" step="1" :value="draft.research_maintenance_ratio * 100" @input="ratio('research_maintenance_ratio', $event)" /></label>
           </div>
-        </section>
+        </details>
         <section v-if="planSection === 'advanced' && draft.research_interval === 'daily'" class="section">
           <div class="signal-compare">
             <div class="signal-compare-heading"><h3>同口径模型对照</h3><button class="link-button" @click="navigate('validation')">完整验证 <ChevronRight :size="15" /></button></div>
@@ -525,8 +511,8 @@ function changeAllocation(group: string, event: Event) {
             /></label>
           </div>
         </details>
-      </div>
-      <aside class="plan-summary">
+      </fieldset>
+      <aside v-if="!fixedProfile" class="plan-summary">
         <ShieldCheck :size="24" />
         <h2>{{ dirty ? "计划草稿" : "当前计划" }}</h2>
         <dl>
@@ -556,16 +542,11 @@ function changeAllocation(group: string, event: Event) {
         <p class="small-note">
           回撤线是触发条件，不是损失保证。跳空、无法成交和数据延迟都可能扩大亏损。
         </p>
-        <details class="plan-management">
-          <summary>其他管理操作</summary>
-          <a href="/?lab=1#strategy">独立研究工具 <ArrowUpRight :size="14" /></a>
-          <small>旧模型和实验记录留在研究区，不改变当前计划。</small>
-          <button class="danger-text" :disabled="!state.started_at" @click="showReset = true">归档并重新开始模拟</button>
-        </details>
+        <div class="section"><a href="/?lab=1#tune">研究与优化参数 <ArrowUpRight :size="14" /></a><button class="link-button" @click="navigate('overview')">模拟账户设置 <ChevronRight :size="14"/></button></div>
       </aside>
     </div>
     <div v-if="parametersOpen && machineSelected" class="modal-backdrop" @click.self="parametersOpen = false">
-      <section class="dialog model-parameters" role="dialog" aria-modal="true" aria-label="模型参数设置" tabindex="-1" @keydown.esc="parametersOpen = false">
+      <section class="dialog model-parameters" role="dialog" aria-modal="true" aria-label="模型参数设置" v-modal="() => parametersOpen = false">
         <div class="dialog-heading">
           <div><p class="eyebrow">{{ profileName }} · 模型参数</p><h2>{{ signalName(draft) }}</h2></div>
           <button class="icon-button" title="关闭模型参数设置" aria-label="关闭模型参数设置" @click="parametersOpen = false"><X :size="18" /></button>

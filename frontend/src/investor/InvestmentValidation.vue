@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
-import { ChartNoAxesCombined, CircleAlert, Download, Play, RefreshCw, ShieldCheck } from "@lucide/vue";
+import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch } from "vue";
+import { ChartNoAxesCombined, CircleAlert, Download, Play, RefreshCw, ShieldCheck, FlaskConical } from "@lucide/vue";
 import { api, dateTime, money, pct } from "../api";
 import PortfolioChart from "../components/PortfolioChart.vue";
-import ForwardObservation from './ForwardObservation.vue';
-import CombinationResearch from './CombinationResearch.vue';
+const ForwardObservation = defineAsyncComponent(() => import('./ForwardObservation.vue'));
 import { useInvestor, intradayNames } from "./workspace";
 
 const {
-  state, draft, report, dirty, busy, methodNames, resultRows, save, signalName,
+  state, draft, report, dirty, busy, methodNames, resultRows, signalName,
+  startYear, endYear, periodDirty, savePreferences, connected,
   reportMatchesPlan, reportError, refresh, profileSlot,
   name, gainClass, jobsByKind, navigate, run, exportReport, inspectData, auditData,
 } = useInvestor();
@@ -16,16 +16,11 @@ const plan = computed<any>(() => state.value?.settings?.plan);
 const latestValidationJob = computed<any>(() => state.value?.jobs?.find(
   (job: any) => job.kind === (hourly.value ? "intraday_test" : "portfolio_test")));
 const hourly = computed(() => plan.value?.research_interval !== "daily");
-const yearOnlyDirty = computed(() => dirty.value && !!draft.value && !!plan.value &&
-  profileSlot.value === (state.value?.profile_library?.active_slot || plan.value.profile) &&
-  Object.keys(draft.value).every((key) =>
-    ["validation_start_year", "validation_end_year"].includes(key) ||
-    JSON.stringify(draft.value[key]) === JSON.stringify(plan.value[key])));
 const yearOptions = Array.from({ length: Math.max(1, new Date().getFullYear() - 2019) }, (_, index) => 2019 + index);
 const periodMatches = computed(() => !!report.value && !!plan.value &&
-  Number(report.value.start.slice(0, 4)) === draft.value.validation_start_year &&
-  Number(report.value.end.slice(0, 4)) === draft.value.validation_end_year);
-const currentReport = computed(() => !dirty.value && reportMatchesPlan.value && periodMatches.value ? report.value : null);
+  Number(report.value.start.slice(0, 4)) === startYear.value &&
+  Number(report.value.end.slice(0, 4)) === endYear.value);
+const currentReport = computed(() => reportMatchesPlan.value && periodMatches.value ? report.value : null);
 const currentResult = computed(() => currentReport.value?.results?.[plan.value?.method]);
 const riskName = computed(() => ({
   conservative: "保守", balanced: "均衡", aggressive: "激进", custom: "自定义",
@@ -37,9 +32,7 @@ const hourlyResult = ref<any>();
 const hourlyBusy = ref(false);
 const hourlyError = ref("");
 let hourlyRequest = 0;
-const compareModels = ref(false);
-const view = ref(sessionStorage.getItem('validation-view') === 'forward' ? 'forward' : 'history');
-watch(view, value => sessionStorage.setItem('validation-view', value));
+const view = ref('history');
 const selectedHourly = computed(() => hourlyResult.value?.scenarios?.find(
   (item: any) => item.multiple === plan.value?.research_multiple));
 const diagnostic = computed(() => hourlyResult.value?.validation);
@@ -74,14 +67,14 @@ const hourlySeries = computed(() => {
 async function loadHourly() {
   const request = ++hourlyRequest;
   hourlyBusy.value = false;
-  if (dirty.value || !hourly.value) return;
+  if (!hourly.value) return;
   hourlyBusy.value = true;
   hourlyError.value = "";
   hourlyResult.value = null;
   try {
     const revision = state.value.settings.revision;
     const response = await api("/investment/intraday-research");
-    if (request === hourlyRequest && revision === state.value.settings.revision && !dirty.value &&
+    if (request === hourlyRequest && revision === state.value.settings.revision &&
         response.result?.plan_key === state.value.plan_key) hourlyResult.value = response.result;
   } catch (cause: any) {
     if (request === hourlyRequest) hourlyError.value = cause.message;
@@ -91,15 +84,15 @@ async function loadHourly() {
 }
 async function validateCurrent() {
   if (dirty.value) {
-    if (!yearOnlyDirty.value) {
-      navigate("plan");
-      return;
-    }
-    if (draft.value.validation_start_year > draft.value.validation_end_year) return;
-    if (!await save()) return;
+    navigate("plan");
+    return;
   }
+  if (!hourly.value && startYear.value > endYear.value) return;
+  if (!hourly.value && periodDirty.value && !await savePreferences({
+    validation_start_year: startYear.value, validation_end_year: endYear.value,
+  })) return;
   if (hourly.value) await run("intraday_test");
-  else await run("portfolio_test", undefined, compareModels.value);
+  else await run("portfolio_test");
 }
 watch([() => state.value?.settings?.revision, () => dirty.value,
        () => state.value?.jobs?.find((job: any) => job.kind === 'intraday_test' && job.status === 'done')?.id], () => {
@@ -107,6 +100,7 @@ watch([() => state.value?.settings?.revision, () => dirty.value,
   hourlyError.value = "";
   void loadHourly();
 }, { immediate: true });
+onBeforeUnmount(() => { ++hourlyRequest; });
 </script>
 
 <template>
@@ -114,8 +108,8 @@ watch([() => state.value?.settings?.revision, () => dirty.value,
     <div class="page-title">
       <div>
         <p class="eyebrow">{{ view === 'forward' ? '独立模拟账户 · 启动时锁定参数' : '直接使用已保存的投资计划' }}</p>
-        <h1>{{ view === 'forward' ? '前向观察' : '历史验证' }}</h1>
-        <p v-if="view === 'history'" class="subtitle">{{ hourly ? `${plan.research_interval.replace('m', ' 分钟')}短样本探索` : `${draft.validation_start_year}–${draft.validation_end_year} 年日线回测` }}</p>
+        <h1>{{ view === 'forward' ? '独立跟踪' : '历史验证' }}</h1>
+        <p v-if="view === 'history'" class="subtitle">{{ hourly ? `${plan.research_interval.replace('m', ' 分钟')}短样本探索` : '当前计划、持有基准与成本压力对照' }}</p>
       </div>
       <button v-if="view === 'history' && currentReport && !hourly" class="icon-button" title="导出完整验证结果"
         aria-label="导出完整验证结果" @click="exportReport"><Download :size="19" /></button>
@@ -123,7 +117,7 @@ watch([() => state.value?.settings?.revision, () => dirty.value,
 
     <div class="validation-modes" role="tablist" aria-label="验证方式">
       <button role="tab" :aria-selected="view === 'history'" :class="{ selected: view === 'history' }" @click="view = 'history'">历史验证</button>
-      <button role="tab" :aria-selected="view === 'forward'" :class="{ selected: view === 'forward' }" @click="view = 'forward'">前向观察</button>
+      <button role="tab" :aria-selected="view === 'forward'" :class="{ selected: view === 'forward' }" @click="view = 'forward'">独立跟踪</button>
     </div>
     <ForwardObservation v-if="view === 'forward'" />
     <template v-else>
@@ -133,16 +127,15 @@ watch([() => state.value?.settings?.revision, () => dirty.value,
 
     <div class="validation-plan" :class="{ warning: dirty || (!hourly && !currentReport) }" role="status">
       <div>
-        <strong>{{ yearOnlyDirty ? '验证年份待保存' : dirty ? '投资计划有未保存修改' : '本次使用已保存的计划' }}</strong>
+        <strong>{{ dirty ? '投资计划有未保存修改' : '本次使用已保存的计划' }} · v{{ state.settings.revision }}</strong>
         <p>{{ hourly ? intradayNames[plan.intraday_strategy] : signalName(plan) }} · {{ hourly ? '独立盘中实验' : riskName }} · {{ hourly ? plan.research_interval.replace('m', ' 分钟') : '日线 / ' + cadenceName }} · {{ plan.research_multiple }}x
           <span v-if="hourly"> · {{ name(plan.research_symbol) }}</span>
-          <span v-else> · {{ draft.validation_start_year }}–{{ draft.validation_end_year }} 年</span>
           <span v-if="!hourly && plan.method !== 'hold'"> · {{ plan.trend_signal === 'multi_horizon' ? '多周期' : '双周期' }} · {{ plan.exposure_policy === 'volatility_target' ? '动态减仓' : '固定仓位' }}</span>
         </p>
         <small v-if="hourly">盘中验证与模拟都使用同一套 T+0 规则与成交引擎；短样本不代表长期表现。</small>
         <small v-else-if="plan.research_multiple > 1">按所选倍数逐笔重放成交、利息和维保减仓；模拟账户更新采用相同指令。</small>
       </div>
-      <button v-if="!yearOnlyDirty" type="button" @click="navigate('plan')">{{ dirty ? '去保存' : '修改计划' }}</button>
+      <button type="button" @click="navigate('plan')">{{ dirty ? '查看草稿' : '修改计划' }}</button>
     </div>
 
     <div v-if="!hourly && currentReport?.market_revisions" class="notice warning">
@@ -152,30 +145,23 @@ watch([() => state.value?.settings?.revision, () => dirty.value,
       这份同参数对照可看，但所选模型的成本加倍压力尚未补测；运行当前计划验证后更新。
     </div>
 
-    <section v-if="!hourly" class="section validation-period">
-      <h2>验证年份</h2>
-      <div class="form-grid compact-fields">
-        <label>起始年份<select v-model.number="draft.validation_start_year" aria-label="验证起始年份">
+    <div class="validation-toolbar">
+      <div v-if="!hourly" class="validation-period">
+        <label>起始年份<select v-model.number="startYear" :disabled="busy" aria-label="验证起始年份">
           <option v-for="year in yearOptions" :key="year" :value="year">{{ year }}</option>
         </select></label>
-        <label>结束年份<select v-model.number="draft.validation_end_year" aria-label="验证结束年份">
+        <label>结束年份<select v-model.number="endYear" :disabled="busy" aria-label="验证结束年份">
           <option v-for="year in yearOptions" :key="year" :value="year">{{ year }}</option>
         </select></label>
       </div>
-      <p v-if="draft.validation_start_year > draft.validation_end_year" class="notice warning">起始年份不能晚于结束年份。</p>
-      <p v-else class="small-note">只改变历史验证区间，不改变正在运行的模拟账户。</p>
-      <details><summary>附加模型对照</summary>
-        <label class="check-field"><input type="checkbox" v-model="compareModels" />同时训练其他机器学习模型</label>
-      </details>
-    </section>
-
-    <div class="validation-action">
-      <button class="primary" :disabled="busy || hourlyBusy || draft.validation_start_year > draft.validation_end_year || jobsByKind(hourly ? 'intraday_test' : 'portfolio_test')" @click="validateCurrent">
-        <Play :size="16" />{{ hourly ? '运行盘中验证' : currentReport ? '重新验证当前计划' : '验证当前计划' }}
+      <button class="primary" :disabled="busy || !connected || hourlyBusy || (!hourly && startYear > endYear) || jobsByKind(hourly ? 'intraday_test' : 'portfolio_test')" @click="validateCurrent">
+        <Play :size="16" />{{ dirty ? '先保存投资计划' : jobsByKind(hourly ? 'intraday_test' : 'portfolio_test') ? '验证进行中' : hourly ? '运行盘中验证' : currentReport ? '重新验证当前计划' : '验证当前计划' }}
       </button>
-      <span>{{ hourly ? '仅近期盘中行情；不会使用日线所选年份' : '年份变化会先保存，再用同一份冻结行情验证' }}</span>
       <button v-if="hourly" :disabled="busy || dirty || jobsByKind('intraday_refresh')" @click="run('intraday_refresh')"><RefreshCw :size="16" />更新盘中数据</button>
+      <a class="workspace-link" href="/?lab=1#compare"><FlaskConical :size="16"/>研究模型与参数</a>
     </div>
+    <p v-if="!hourly && startYear > endYear" class="notice warning">起始年份不能晚于结束年份。</p>
+    <p v-else-if="periodDirty && !hourly" class="small-note">所选区间尚未运行；只改变验证年份，不改变模拟账户的策略。</p>
     <div v-if="latestValidationJob && latestValidationJob.created >= (state.settings.saved_at || 0) && ['failed', 'stopped', 'interrupted'].includes(latestValidationJob.status)" class="notice error" role="alert">
       最近任务未完成：{{ latestValidationJob.error || latestValidationJob.message || '请重新运行' }}。下方如有结果，来自此前保存的历史快照，不代表本次成功。
     </div>
@@ -281,16 +267,17 @@ watch([() => state.value?.settings?.revision, () => dirty.value,
 
     <template v-else>
       <template v-if="currentReport && currentResult">
-        <div class="validation-verdict">
+        <div class="result-identity" role="status"><span>匹配已保存计划 · {{ currentReport.start }} 至 {{ currentReport.end }}</span><span>参数 {{ currentReport.plan_key.slice(0, 8) }} · {{ currentReport.tested_at ? dateTime(currentReport.tested_at) : '历史快照' }}</span></div>
+        <div class="validation-verdict" :class="{warning: currentReport.checks?.some((item: any) => !item.ok && !item.not_applicable)}">
           <ShieldCheck :size="21" />
           <div><strong>{{ currentReport.verdict }}</strong>
             <p>历史结果不是未来收益；目前不代表可以实盘交易。</p></div>
         </div>
         <div class="validation-metrics">
-          <div><span>{{ plan.research_multiple }}x 历史收益</span><strong :class="gainClass(currentResult.return_pct)">{{ pct(currentResult.return_pct) }}</strong></div>
+          <div><span>{{ plan.research_multiple }}x 区间累计收益</span><strong :class="gainClass(currentResult.return_pct)">{{ pct(currentResult.return_pct) }}</strong><small v-if="currentResult.annualized_return != null">折合年化 {{ pct(currentResult.annualized_return) }}</small></div>
           <div><span>最大回撤</span><strong>{{ pct(currentResult.max_drawdown) }}</strong></div>
           <div><span>{{ plan.research_multiple }}x 同偏好持有</span><strong :class="gainClass(currentReport.results.hold?.return_pct)">{{ pct(currentReport.results.hold?.return_pct) }}</strong></div>
-          <div><span>交易笔数 / 借款利息</span><strong>{{ currentResult.trade_count }} / {{ money(currentResult.interest_paid || 0) }} 元</strong></div>
+          <div><span>交易笔数</span><strong>{{ currentResult.trade_count }}</strong><small>借款利息 {{ money(currentResult.interest_paid || 0) }} 元</small></div>
         </div>
         <section class="section">
           <h2>逐笔执行后的资产走势</h2>
@@ -333,12 +320,11 @@ watch([() => state.value?.settings?.revision, () => dirty.value,
       <div v-else class="empty report-empty">
         <ChartNoAxesCombined :size="32" />
         <h2>当前计划尚未验证</h2>
-        <p v-if="report && !periodMatches">已有结果对应 {{ report.start }} 至 {{ report.end }}；本次选择 {{ draft.validation_start_year }}–{{ draft.validation_end_year }} 年，旧结果不再展示。</p>
-        <p v-else>点击上方按钮，验证 {{ draft.validation_start_year }}–{{ draft.validation_end_year }} 年。</p>
+        <p v-if="report && !periodMatches">已有结果对应 {{ report.start }} 至 {{ report.end }}；本次选择 {{ startYear }}–{{ endYear }} 年，旧结果不再展示。</p>
+        <p v-else>{{ dirty ? '草稿尚未启用；先保存计划，再验证。' : `所选 ${startYear}–${endYear} 年尚无匹配结果。` }}</p>
       </div>
     </template>
 
-    <CombinationResearch />
     <details v-if="!hourly" class="section" @toggle="($event.target as HTMLDetailsElement).open && inspectData()">
       <summary>行情数据覆盖</summary>
       <div v-if="auditData" class="table-scroll"><table>

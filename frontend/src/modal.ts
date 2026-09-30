@@ -1,10 +1,13 @@
 import type { Directive } from "vue";
 
 const active = new WeakMap<HTMLElement, () => void>();
+const dialogs: HTMLElement[] = [];
+let originalOverflow = '';
 export const modal: Directive<HTMLElement, () => void> = {
   mounted(element, binding) {
     const previous = document.activeElement as HTMLElement | null;
-    const overflow = document.body.style.overflow;
+    if (!dialogs.length) originalOverflow = document.body.style.overflow;
+    dialogs.push(element);
     document.body.style.overflow = "hidden";
     element.tabIndex = -1;
     const controls = () =>
@@ -14,10 +17,11 @@ export const modal: Directive<HTMLElement, () => void> = {
         ),
       ).filter((e) => e.getClientRects().length);
     const keyboard = (event: KeyboardEvent) => {
+      if (dialogs.at(-1) !== element) return;
       if (event.key === "Escape") {
         event.preventDefault();
         event.stopPropagation();
-        binding.value();
+        if (typeof binding.value === 'function') binding.value();
       }
       if (event.key !== "Tab") return;
       const list = controls();
@@ -28,21 +32,24 @@ export const modal: Directive<HTMLElement, () => void> = {
         element.focus();
       } else if (
         event.shiftKey &&
-        (document.activeElement === first || document.activeElement === element)
+        (document.activeElement === first || document.activeElement === element || !element.contains(document.activeElement))
       ) {
         event.preventDefault();
         last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
+      } else if (!event.shiftKey && (document.activeElement === last || !element.contains(document.activeElement))) {
         event.preventDefault();
         first.focus();
       }
     };
-    element.addEventListener("keydown", keyboard);
+    // A disabled submitting button can leave focus on body; keep Escape and Tab working.
+    document.addEventListener("keydown", keyboard);
     (controls()[0] || element).focus();
     active.set(element, () => {
-      element.removeEventListener("keydown", keyboard);
-      document.body.style.overflow = overflow;
-      if (previous?.isConnected) previous.focus();
+      document.removeEventListener("keydown", keyboard);
+      const wasTop = dialogs.at(-1) === element;
+      dialogs.splice(dialogs.indexOf(element), 1);
+      document.body.style.overflow = dialogs.length ? 'hidden' : originalOverflow;
+      if (wasTop && previous?.isConnected) previous.focus();
     });
   },
   unmounted(element) {

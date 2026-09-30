@@ -26,6 +26,8 @@ try {
   await expect(page.getByRole('heading',{name:'方案对比',exact:true})).toBeVisible();
   assert.equal(await page.getByRole('navigation',{name:'研究导航'}).getByRole('button').count(),3);
   assert.equal(await page.getByRole('button',{name:/手动买入|模拟下单|账户重置/}).count(),0);
+  for (const checkbox of await page.locator('.research-model-row input').all()) await checkbox.uncheck();
+  await expect(page.getByRole('button',{name:'开始对比',exact:true})).toBeDisabled();
   await page.getByRole('button',{name:'参数优化',exact:true}).click();
   await page.getByLabel('研究模型配方').selectOption('ridge20');
   await page.getByLabel('正则强度',{exact:true}).fill('37');
@@ -44,6 +46,7 @@ try {
   await page.getByRole('button',{name:'开始参数优化',exact:true}).click();
   await expect(page.getByRole('heading',{name:'研究记录',exact:true})).toBeVisible();
   assert.equal(submitted.study.recipe,'ridge20');
+  assert.deepEqual(submitted.study.recipes,['ridge20']);
   assert.equal(submitted.study.tuning.regularization,37);
   assert.equal(submitted.study.mode,'tune');
   assert.equal(submitted.base_plan_key,before.plan_key);
@@ -81,9 +84,9 @@ try {
   await page.getByRole('link',{name:'送到投资计划草稿',exact:true}).click();
   await expect(page.getByText(/已载入研究草稿/)).toBeVisible();
   assert.equal((await state()).settings.revision,before.settings.revision);
-  await expect(page.getByRole('button',{name:'保存并使用自定义',exact:true})).toBeEnabled();
+  await expect(page.getByRole('button',{name:/^(保存并使用|启用)自定义$/})).toBeEnabled();
   const saved = page.waitForResponse(r=>r.url().endsWith('/investment/plan') && r.request().method()==='PUT');
-  await page.getByRole('button',{name:'保存并使用自定义',exact:true}).click();
+  await page.getByRole('button',{name:/^(保存并使用|启用)自定义$/}).click();
   assert.equal((await saved).status(),200);
   const after = await state();
   assert.equal(after.profile_library.entries.custom.plan.model_recipe,'ridge20');

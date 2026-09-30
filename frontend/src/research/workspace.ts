@@ -78,11 +78,13 @@ export function createResearchWorkspace() {
   }
   async function paginate(direction: number) { offset.value = Math.max(0, offset.value + direction * 12); await refreshJobs(); }
   async function run() {
+    if (busy.value) return;
     if (!writable.value) { showLogin.value = true; return; }
     busy.value = true; error.value = '';
     try {
       const study = {mode: page.value === 'tune' ? 'tune' : 'compare', ...form,
-        recipes: compareRecipes.value, recipe: recipe.value, tuning: clone(tuning.value)};
+        recipes: page.value === 'tune' ? [recipe.value] : compareRecipes.value,
+        recipe: recipe.value, tuning: clone(tuning.value)};
       const job = await api('/research-workspace/run', {method: 'POST', body: JSON.stringify({slot: slot.value, base_plan_key: baseline.value.plan_key, study})});
       offset.value = 0;
       await selectJob(job.id); await refreshJobs(); navigate('history');

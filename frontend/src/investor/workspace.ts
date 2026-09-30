@@ -24,6 +24,9 @@ export const intradayNames: Record<string, string> = {
   legacy: "原始均线", cost_aware: "成本过滤 + 波动限仓",
   breakout: "通道突破", ml_edge: "盘中回归 · 实验",
 };
+export const profileNames: Record<string, string> = {
+  conservative: "保守", balanced: "均衡", aggressive: "激进", custom: "自定义",
+};
 export function createInvestorWorkspace() {
   const tabs = [
     { id: "overview", name: "总览", icon: Activity },
@@ -52,8 +55,13 @@ export function createInvestorWorkspace() {
     interval = ref("daily"),
     chartData = ref<any>(),
     chartBusy = ref(false);
-  const startYear = computed(() => state.value?.settings?.plan?.validation_start_year ?? new Date().getFullYear() - 5),
-    endYear = computed(() => state.value?.settings?.plan?.validation_end_year ?? new Date().getFullYear() - 1);
+  const startYear = ref(new Date().getFullYear() - 5),
+    endYear = ref(new Date().getFullYear() - 1);
+  const periodDirty = computed(() => !!state.value && (
+    startYear.value !== state.value.settings.plan.validation_start_year ||
+    endYear.value !== state.value.settings.plan.validation_end_year));
+  const activeProfileName = computed(() => profileNames[state.value?.profile_library?.active_slot] || '自定义');
+  const draftConflict = computed(() => dirty.value && draftRevision.value !== state.value?.settings?.revision);
   const remote = ref(false),
     writable = ref(true),
     showLogin = ref(false),
@@ -164,8 +172,8 @@ export function createInvestorWorkspace() {
     toast.value = message;
   }
   function navigate(id: string) {
-    page.value = id;
-    location.hash = id;
+    page.value = tabs.some(tab => tab.id === id) ? id : 'overview';
+    location.hash = page.value;
   }
   function hashChanged() {
     page.value = tabs.some((t) => t.id === location.hash.slice(1))
@@ -216,7 +224,12 @@ export function createInvestorWorkspace() {
       const current = await api("/investment");
       if (!currentRequest() || current.settings.revision < (state.value?.settings?.revision || 0)) return;
       const clean = !dirty.value;
+      const cleanPeriod = !periodDirty.value;
       state.value = current;
+      if (initial || cleanPeriod) {
+        startYear.value = current.settings.plan.validation_start_year;
+        endYear.value = current.settings.plan.validation_end_year;
+      }
       connected.value = true;
       if (!reportMatchesPlan.value || report.value?.start !== `${current.settings.plan.validation_start_year}-01-01` ||
           report.value?.end !== `${current.settings.plan.validation_end_year}-12-31`) report.value = null;
@@ -264,6 +277,7 @@ export function createInvestorWorkspace() {
     if (alive) timer = setTimeout(loop, activeJobs.value.length ? 2500 : 10000);
   }
   async function save() {
+    if (busy.value) return false;
     if (!writable.value) {
       showLogin.value = true;
       return false;
@@ -302,7 +316,41 @@ export function createInvestorWorkspace() {
       busy.value = false;
     }
   }
+  async function savePreferences(values: Partial<{starting_cash: number; auto_update: boolean;
+    validation_start_year: number; validation_end_year: number}>, expectedRevision = draftRevision.value) {
+    if (busy.value) return false;
+    if (!writable.value) { showLogin.value = true; return false; }
+    if (draftConflict.value) {
+      error.value = '另一设备已修改计划，请先处理或放弃旧草稿，再保存账户设置。';
+      return false;
+    }
+    // Shared account/period changes must never activate the profile being previewed.
+    busy.value = true;
+    error.value = '';
+    try {
+      const patch = Object.fromEntries(Object.entries(values).filter(([key]) =>
+        ['starting_cash', 'auto_update', 'validation_start_year', 'validation_end_year'].includes(key)));
+      const value = await api('/investment/plan', {method:'PUT', body:JSON.stringify({
+        plan: {...state.value.settings.plan, ...patch}, revision: expectedRevision,
+        profile_slot: state.value.profile_library.active_slot,
+      })});
+      ++refreshRequest;
+      state.value.settings = value;
+      state.value.plan_key = null;
+      report.value = null;
+      lastReportJob = '';
+      draftRevision.value = value.revision;
+      Object.assign(draft.value, patch);
+      saved.value = JSON.stringify({...JSON.parse(saved.value), ...patch});
+      for (const buffered of Object.values(profileDrafts.value)) Object.assign(buffered, patch);
+      for (const entry of Object.values(state.value.profile_library.entries) as any[]) Object.assign(entry.plan, patch);
+      await refresh();
+      return true;
+    } catch (e: any) { error.value = e.message; return false; }
+    finally { busy.value = false; }
+  }
   async function run(kind: string, researchMethod?: string, compareModels = false) {
+    if (busy.value) return;
     if (!writable.value) {
       showLogin.value = true;
       return;
@@ -376,6 +424,9 @@ export function createInvestorWorkspace() {
     }
   }
   async function reset() {
+    if (busy.value) return;
+    if (!writable.value) { showReset.value = false; showLogin.value = true; return; }
+    busy.value = true;
     try {
       await api("/investment/reset", { method: "POST" });
       showReset.value = false;
@@ -383,6 +434,8 @@ export function createInvestorWorkspace() {
       notify("原记录已归档，下一次更新将开始新的模拟");
     } catch (e: any) {
       error.value = e.message;
+    } finally {
+      busy.value = false;
     }
   }
   function exportReport() {
@@ -402,7 +455,11 @@ export function createInvestorWorkspace() {
     if (["max_exposure", "max_weight", "drawdown_pause", "drift_band"].includes(key))
       draft.value.profile = "custom";
   }
-  watch([asset, interval], loadChart);
+  watch([asset, interval], () => { if (page.value === 'overview') void loadChart(); });
+  watch(page, (id) => {
+    window.scrollTo({top:0});
+    if (id === 'overview') void loadChart();
+  });
   onMounted(async () => {
     document.title = "StockLab · 个人投资";
     hashChanged();
@@ -426,7 +483,7 @@ export function createInvestorWorkspace() {
         history.replaceState(null, '', '/#plan');
       } catch (e: any) { error.value = e.message; }
     }
-    await loadChart();
+    if (page.value === 'overview') await loadChart();
     if (alive) timer = setTimeout(loop, 3000);
   });
   onBeforeUnmount(() => {
@@ -463,6 +520,10 @@ export function createInvestorWorkspace() {
     chartBusy,
     startYear,
     endYear,
+    periodDirty,
+    activeProfileName,
+    draftConflict,
+    savePreferences,
     remote,
     writable,
     showLogin,

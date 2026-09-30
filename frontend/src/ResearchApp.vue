@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ArrowLeft, ChartNoAxesCombined, SlidersHorizontal, History, Play, Square, RefreshCw, RotateCcw, Download, X, LockKeyhole, FlaskConical, ChevronLeft, ChevronRight, Info } from '@lucide/vue';
-import { computed } from 'vue';
+import { computed, defineAsyncComponent } from 'vue';
+const CombinationResearch = defineAsyncComponent(() => import('./investor/CombinationResearch.vue'));
 import { createResearchWorkspace, fieldNames, fieldHints, slotNames, modelNames } from './research/workspace';
 import { dateTime, statusName, pct, money } from './api';
 import StudyResult from './research/StudyResult.vue';
@@ -56,7 +57,7 @@ async function reload() { try {await w.reloadContext(); await w.refreshJobs();} 
               <div class="research-field-pair"><label>{{ page === 'tune' ? '调参起始年' : '起始年' }}<input type="number" v-model.number="form.start_year" min="2015" :max="new Date().getFullYear() - 1"/></label><label>{{ page === 'tune' ? '调参结束年' : '结束年' }}<input type="number" v-model.number="form.end_year" min="2015" :max="new Date().getFullYear() - 1"/></label></div>
               <template v-if="page === 'tune'"><div class="research-field-pair"><label>后续检验起始年<input type="number" v-model.number="form.check_start_year" :min="form.end_year + 1" :max="new Date().getFullYear() - 1"/></label><label>后续检验结束年<input type="number" v-model.number="form.check_end_year" :min="form.check_start_year" :max="new Date().getFullYear() - 1"/></label></div><label>搜索预算<select v-model.number="form.budget"><option :value="3">小范围 · 3 个中心与邻近候选</option><option :value="5">标准 · 5 个中心与邻近候选</option><option :value="9">扩展 · 最多 9 个中心与邻近候选</option></select></label></template>
               <dl class="research-facts"><dt>参照</dt><dd>原计划、同配置持有</dd><dt>成交与成本</dt><dd>次日开盘 · 佣金 · 滑点 · 利息</dd><dt>训练</dt><dd>按月滚动 · 标签时间截断</dd></dl>
-              <button class="primary research-run" :disabled="!canRun || !!active || !compareRecipes.length" @click="run"><Play :size="16"/>{{ busy ? '正在提交' : page === 'tune' ? '开始参数优化' : '开始对比' }}</button>
+              <button class="primary research-run" :disabled="!canRun || !!active || (page === 'compare' && !compareRecipes.length)" @click="run"><Play :size="16"/>{{ busy ? '正在提交' : page === 'tune' ? '开始参数优化' : '开始对比' }}</button>
               <a v-if="active" href="#history" class="research-link">研究任务进行中 · 查看进度</a>
             </section>
             <section class="research-models" v-if="page === 'compare'">
@@ -84,9 +85,10 @@ async function reload() { try {await w.reloadContext(); await w.refreshJobs();} 
             </template><div v-else class="research-empty"><FlaskConical :size="36"/><h3>从一次公平对比开始</h3><button @click="navigate('compare')">新建方案对比</button></div>
           </section>
         </div>
+        <CombinationResearch v-if="page === 'history'"/>
         <footer class="research-footer">研究不下单 · 不自动修改投资计划 · 历史表现不代表未来收益</footer>
       </template>
     </main>
-    <div v-if="showLogin" class="modal-backdrop" @click.self="showLogin = false"><section class="dialog" role="dialog" aria-modal="true" aria-label="解锁研究操作" v-modal><div class="research-heading"><h2>解锁研究操作</h2><button class="icon-button" aria-label="关闭" @click="showLogin = false"><X :size="17"/></button></div><label>管理口令<input type="password" v-model="loginKey" autocomplete="current-password"/></label><button class="primary" @click="login">解锁</button></section></div>
+    <div v-if="showLogin" class="modal-backdrop" @click.self="showLogin = false"><section class="dialog" role="dialog" aria-modal="true" aria-label="解锁研究操作" v-modal="() => showLogin = false"><div class="research-heading"><h2>解锁研究操作</h2><button class="icon-button" aria-label="关闭" @click="showLogin = false"><X :size="17"/></button></div><label>管理口令<input type="password" v-model="loginKey" autocomplete="current-password"/></label><button class="primary" @click="login">解锁</button></section></div>
   </div>
 </template>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, defineAsyncComponent, ref } from "vue";
 import {
   Activity,
   SlidersHorizontal,
@@ -17,11 +17,15 @@ import {
   Download,
   X,
   LockKeyhole,
+  Settings2,
 } from "@lucide/vue";
 import { money, pct } from "../api";
 import PortfolioChart from "../components/PortfolioChart.vue";
 import { useInvestor } from "./workspace";
+const AccountSettings = defineAsyncComponent(() => import('./AccountSettings.vue'));
+const settingsOpen = ref(false);
 const {
+  activeProfileName, signalName,
   tabs,
   page,
   state,
@@ -94,13 +98,18 @@ const latestUpdateJob = computed<any>(() => state.value?.jobs?.find(
           · {{ state.execution.interval !== 'daily' ? state.execution.interval.replace('m', ' 分钟') : '日线' }} / {{ state.execution.multiple }}x
         </p>
       </div>
-      <button
+      <div class="actions"><button title="模拟账户设置" @click="settingsOpen = true"><Settings2 :size="16"/>账户设置</button><button
         class="primary"
-        :disabled="busy || jobsByKind('portfolio_update')"
+        :disabled="busy || !connected || jobsByKind('portfolio_update')"
         @click="run('portfolio_update')"
       >
         <RefreshCw :size="16" />{{ state.date ? "更新模拟" : "开始模拟观察" }}
-      </button>
+      </button></div>
+    </div>
+    <div class="account-context">
+      <div><small>已启用计划 · v{{ state.settings.revision }}</small><strong>{{ activeProfileName }} · {{ signalName(state.settings.plan) }}</strong><button class="link-button" @click="navigate('plan')">查看计划 <ArrowUpRight :size="14"/></button></div>
+      <div><small>模拟更新</small><strong>{{ state.settings.plan.auto_update ? (state.execution.interval === 'daily' ? '自动 · 工作日 16:00 后' : '自动 · K 线结束后') : '手动更新' }}</strong><span>{{ connected ? '本机服务已连接' : '服务离线，状态待确认' }}</span></div>
+      <div><small>起始资金</small><strong>{{ money(state.settings.plan.starting_cash) }} 元</strong><span>{{ state.started_at ? '已有模拟记录' : '尚未建仓' }}</span></div>
     </div>
     <div v-if="state.plan_changed" class="notice warning">
       投资计划已修改；账户仍是上次计划的结果，更新后新计划才会生效。
@@ -367,5 +376,6 @@ const latestUpdateJob = computed<any>(() => state.value?.jobs?.find(
         <table><thead><tr><th>日期</th><th>标的</th><th>原因</th></tr></thead><tbody><tr v-for="(row,i) in state.rejections" :key="i"><td>{{row.date}}</td><td>{{name(row.symbol)}}</td><td>{{row.reason}}</td></tr></tbody></table>
       </div>
     </details>
+    <AccountSettings v-if="settingsOpen" @close="settingsOpen = false"/>
   </section>
 </template>
