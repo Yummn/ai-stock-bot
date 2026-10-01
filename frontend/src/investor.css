@@ -50,12 +50,12 @@ button:disabled {
   cursor: not-allowed;
 }
 button.primary {
-  background: #0e7469;
+  background: #bf343b;
   color: white;
-  border-color: #0e7469;
+  border-color: #bf343b;
 }
 button.primary:hover:not(:disabled) {
-  background: #095f56;
+  background: #a52a32;
 }
 button:focus-visible,
 a:focus-visible,
@@ -77,8 +77,8 @@ select {
 }
 input:focus,
 select:focus {
-  border-color: #0e8074;
-  box-shadow: 0 0 0 2px #e4f0ec;
+  border-color: #bf343b;
+  box-shadow: 0 0 0 2px #f9e7e8;
 }
 input:disabled {
   background: #edf1f3;
@@ -136,11 +136,11 @@ input[type="radio"] {
   width: 17px;
   height: 17px;
   min-height: 17px;
-  accent-color: #0e8074;
+  accent-color: #bf343b;
   flex-shrink: 0;
 }
 a {
-  color: #0c756d;
+  color: #b82e37;
   text-decoration: none;
 }
 a:hover {
@@ -200,8 +200,8 @@ header.app-header {
 .brand-mark {
   width: 33px;
   height: 33px;
-  background: #e6f2ef;
-  color: #0e7469;
+  background: #fcecee;
+  color: #bf343b;
   display: grid;
   place-items: center;
   border-radius: 7px;
@@ -227,8 +227,8 @@ header.app-header {
   background: transparent;
 }
 .top-nav button.selected {
-  border-bottom-color: #0e7469;
-  color: #0e7469;
+  border-bottom-color: #bf343b;
+  color: #bf343b;
 }
 .header-tools {
   display: flex;
@@ -541,7 +541,7 @@ main {
 }
 .validation-modes button.selected {
   background: white;
-  color: #0e7469;
+  color: #bf343b;
   box-shadow: 0 1px 3px #2731361a;
 }
 .plan-status {
@@ -551,9 +551,9 @@ main {
   gap: 18px;
   padding: 14px 18px;
   margin-bottom: 20px;
-  background: #eaf3ef;
-  border-left: 3px solid #0e8074;
-  color: #31594f;
+  background: #fcecee;
+  border-left: 3px solid #bf343b;
+  color: #593b3f;
 }
 .plan-status.warning {
   background: #fff6e8;
@@ -577,9 +577,9 @@ main {
   align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
-  border-left: 3px solid #0e8074;
-  background: #eaf3ef;
-  color: #31594f;
+  border-left: 3px solid #bf343b;
+  background: #fcecee;
+  color: #593b3f;
   padding: 15px 18px;
 }
 .validation-plan.warning {
@@ -730,7 +730,7 @@ main {
   margin-top: 3px;
 }
 .research-note {
-  background: #edf3f3;
+  background: #f8eeee;
   border-left-color: #4f8c88;
   color: #3f5c5e;
 }
@@ -910,7 +910,7 @@ tr:last-child td {
   border-bottom: 0;
 }
 .highlight td {
-  background: #edf6f3;
+  background: #fcecee;
 }
 .highlight td:first-child {
   padding-left: 10px;
@@ -1018,8 +1018,8 @@ details summary span {
   border-right: 0;
 }
 .risk-profile button.selected {
-  background: #e9f4f0;
-  color: #12675b;
+  background: #fcecee;
+  color: #b82e37;
 }
 .sector-allocation {
   margin-top: 24px;
@@ -1112,8 +1112,8 @@ label {
   cursor: pointer;
 }
 .strategy-option.checked {
-  background: #edf5f2;
-  color: #155f54;
+  background: #fcecee;
+  color: #9f3038;
 }
 .model-picker {
   display: grid;
@@ -1209,7 +1209,7 @@ label {
   border-left: 1px solid #dce3e5;
 }
 .plan-summary > svg {
-  color: #0e8074;
+  color: #bf343b;
   margin-bottom: 9px;
 }
 .plan-summary h2 {
@@ -1776,7 +1776,7 @@ body:has(.investor-shell) {
     padding: 3px;
   }
   .bottom-nav button.selected {
-    color: #0e7469;
+    color: #bf343b;
   }
   .dialog {
     padding: 20px;

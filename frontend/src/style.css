@@ -5,7 +5,7 @@
   font-synthesis: none;
   font-size: 14px;
   line-height: 1.6;
-  --accent: #087d69;
+  --accent: #bf343b;
   --line: #e4e7e9;
   --muted: #747b83;
   --ink: #24272c;
@@ -48,7 +48,7 @@ button:disabled {
 button:focus-visible,
 a:focus-visible,
 summary:focus-visible {
-  outline: 2px solid #1d8e80;
+  outline: 2px solid #bf343b;
   outline-offset: 3px;
 }
 button svg {
