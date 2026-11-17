@@ -1,4 +1,4 @@
-# AI Stock Bot
+# AI股票模拟研究工作台 / AI Stock Bot
 
 > 项目分类：个人实验项目 / Python 自动交易工具 / 主要用于模拟盘与策略测试
 
